@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "fastapi-cdn-host"
+version = "0.1.0"
+description = ""
+authors = ["Waket Zheng <waketzheng@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+
+
+[tool.poetry.group.dev.dependencies]
+fast-tort-cli = {extras = ["all"], version="*", python=">=3.11"}
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
