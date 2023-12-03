@@ -3,6 +3,8 @@
 Auto find swagger-ui in local files, if exist use them.
 Otherwise make concurrent http requests by httpx to find out which third part cdn host is the fastest one.
 
+**English** | [中文](./README.zh-hans.md)
+
 ## Install
 
 ```bash
@@ -19,3 +21,7 @@ app = FastAPI()
 
 monkey_patch_for_docs_ui(app)
 ```
+
+## License
+
+[MIT](./LICENSE)

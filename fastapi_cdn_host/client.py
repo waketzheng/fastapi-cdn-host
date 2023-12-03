@@ -2,7 +2,7 @@ import logging
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 import anyio
 import httpx
@@ -38,7 +38,7 @@ async def fetch(client, url, results, index):
             results[index] = r.content
 
 
-async def find_fastest_host(urls: list[str], total_seconds=5, loop_interval=0.1) -> str:
+async def find_fastest_host(urls: List[str], total_seconds=5, loop_interval=0.1) -> str:
     results = [None] * len(urls)
     async with (
         anyio.create_task_group() as tg,
@@ -85,7 +85,7 @@ class CdnUrl:
 
 
 class CdnHostBuilder:
-    swagger_ui_version = "5.9.0"
+    swagger_ui_version = "5.9.0"  # to be optimize: auto get version from fastapi
     swagger_files = {"css": "swagger-ui.css", "js": "swagger-ui-bundle.js"}
     redoc_file = "redoc.standalone.js"
 
@@ -96,8 +96,8 @@ class CdnHostBuilder:
     def run(self) -> CdnUrl:
         if _urls := local_file(self.app):
             return _urls
-        css_urls: list[str] = []
-        they: list[tuple] = []
+        css_urls: List[str] = []
+        they: List[tuple] = []
         for cdn_host in CdnHostEnum:
             host = cdn_host.value
             path = DEFAULT_ASSET_PATH[0]
@@ -107,11 +107,8 @@ class CdnHostBuilder:
                 host = host[0]
             else:
                 they.append((host, DEFAULT_ASSET_PATH))
-            url = (
-                host
-                + path.format(version=self.swagger_ui_version)
-                + self.swagger_files["css"]
-            )
+            path = path.format(version=self.swagger_ui_version)
+            url = host + path + self.swagger_files["css"]
             css_urls.append(url)
         fast_one = run_async(find_fastest_host, css_urls)
         index = css_urls.index(fast_one)  # to be optimize
@@ -126,28 +123,9 @@ class CdnHostBuilder:
         logger.info(f"Select cdn: {fast_host[0]} to serve swagger css/js")
         return CdnUrl(css=css, js=js, redoc=redoc)
 
-    # async def get_asset_urls(
-    #     self, cdn: Union[CdnHostEnum, None] = None
-    # ) -> tuple[str, str, str]:
-    #     if cdn is None:
-    #         cdn = await self.sniff_hosts()
-    #     return _get_asset_urls(cdn)
-
-    # def _get_asset_urls(self, cdn: CdnHostEnum) -> tuple[str, str, str]:
-    #     host, urls = host.value
-    #     return tuple([self._build_url(i) for i in urls])
-
-    # def _build_url(self, host: str, uri: str) -> str:
-    #     return (host if uri.startswith("/") else "") + uri.format(
-    #         version=self.swagger_ui_verion
-    #     )
-
-    async def sniff_hosts(self) -> CdnHostEnum:
-        return CdnHostEnum.jsdelivr
-
 
 def monkey_patch_for_docs_ui(
-    app: FastAPI, docs_cdn_host: Union[CdnHostEnum, CdnHostInfoType, None] = None
+    app: FastAPI, docs_cdn_host: Union[CdnHostEnum, CdnHostInfoType, Path, None] = None
 ) -> None:
     if not app.openapi_url or (not app.docs_url and not app.redoc_url):
         return
@@ -208,6 +186,12 @@ def _maybe(static_root: Path, mount=None, app=None) -> Optional[CdnUrl]:
     return None
 
 
+def get_latest_one(gs: List[Path]) -> Path:
+    if len(gs) > 1:
+        gs = sorted(gs, key=lambda x: x.stat().st_mtime, reverse=True)
+    return gs[0]
+
+
 def _next_it(gs, mount=None, app=None, static_root=None) -> CdnUrl:
     if mount:
         uri_path = mount.path
@@ -216,14 +200,14 @@ def _next_it(gs, mount=None, app=None, static_root=None) -> CdnUrl:
         if all(r.path != uri_path for r in app.routes):
             app.mount(uri_path, StaticFiles(directory=static_root), name="static")
             logger.info(f"Auto mount static files to {uri_path} from {static_root}")
-    css_file = gs[0]  # TODO: multi files
+    css_file = get_latest_one(gs)
     if _js := list(static_root.rglob("swagger-ui*.js")):
-        js_file = _js[0]
+        js_file = get_latest_one(_js)
     else:
         js_file = css_file.with_name(CdnHostBuilder.swagger_files["js"])
     redoc_name = CdnHostBuilder.redoc_file
     if _redoc := list(static_root.rglob(redoc_name)):
-        redoc_file = _redoc[0]
+        redoc_file = get_latest_one(_redoc)
     else:
         redoc_file = css_file.with_name(redoc_name)
 
@@ -236,10 +220,12 @@ def _next_it(gs, mount=None, app=None, static_root=None) -> CdnUrl:
     return CdnUrl(css=css, js=js, redoc=redoc)
 
 
-def local_file(app):
+def local_file(app, static_root: Union[Path, None] = None):
+    if static_root is not None:
+        return _maybe(static_root, app=app)
     if mounts := [r for r in app.routes if isinstance(r, Mount)]:
         for m in mounts:
-            for d in m.app.all_directories:
+            for d in m.app.all_directories:  # type: ignore[attr-defined]
                 if r := _maybe(d, mount=m, app=app):
                     return r
     else:
