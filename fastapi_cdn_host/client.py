@@ -28,7 +28,7 @@ CdnHostInfoType = Union[
 ]
 
 
-async def fetch(client, url, results, index):
+async def fetch(client, url, results, index) -> None:
     try:
         r = await client.get(url)
     except (httpx.ConnectError, httpx.ReadError):
@@ -78,7 +78,7 @@ class CdnHostEnum(Enum):
 
 
 @dataclass
-class CdnUrl:
+class AssetUrl:
     css: Annotated[str, "URL of swagger-ui.css"]
     js: Annotated[str, "URL of swagger-ui-bundle.js"]
     redoc: Annotated[str, "URL of redoc.standalone.js"]
@@ -93,7 +93,7 @@ class CdnHostBuilder:
         self.app = app
         self.docs_cdn_host = docs_cdn_host
 
-    def run(self) -> CdnUrl:
+    def run(self) -> AssetUrl:
         if _urls := local_file(self.app):
             return _urls
         css_urls: List[str] = []
@@ -121,7 +121,7 @@ class CdnHostBuilder:
             redoc_path = fast_host[0] + redoc_path
         redoc = redoc_path + self.redoc_file
         logger.info(f"Select cdn: {fast_host[0]} to serve swagger css/js")
-        return CdnUrl(css=css, js=js, redoc=redoc)
+        return AssetUrl(css=css, js=js, redoc=redoc)
 
 
 def monkey_patch_for_docs_ui(
@@ -140,7 +140,7 @@ def monkey_patch_for_docs_ui(
                 new_redoc_url(i, urls, app, app.redoc_url)
 
 
-def new_docs_url(index: int, urls: CdnUrl, app: FastAPI, docs_url: str):
+def new_docs_url(index: int, urls: AssetUrl, app: FastAPI, docs_url: str):
     self = app
     swagger_js_url = urls.js
     swagger_css_url = urls.css
@@ -164,7 +164,7 @@ def new_docs_url(index: int, urls: CdnUrl, app: FastAPI, docs_url: str):
     app.routes[index] = APIRoute(docs_url, swagger_ui_html, include_in_schema=False)
 
 
-def new_redoc_url(index: int, urls: CdnUrl, app: FastAPI, redoc_url: str):
+def new_redoc_url(index: int, urls: AssetUrl, app: FastAPI, redoc_url: str):
     self = app
 
     async def redoc_html(req: Request) -> HTMLResponse:
@@ -179,7 +179,7 @@ def new_redoc_url(index: int, urls: CdnUrl, app: FastAPI, redoc_url: str):
     app.routes[index] = APIRoute(redoc_url, redoc_html, include_in_schema=False)
 
 
-def _maybe(static_root: Path, mount=None, app=None) -> Optional[CdnUrl]:
+def _maybe(static_root: Path, mount=None, app=None) -> Optional[AssetUrl]:
     if gs := list(static_root.rglob("swagger-ui*.css")):
         logger.info(f"Using local files in {static_root} to serve docs assets.")
         return _next_it(gs, mount, app, static_root)
@@ -192,7 +192,7 @@ def get_latest_one(gs: List[Path]) -> Path:
     return gs[0]
 
 
-def _next_it(gs, mount=None, app=None, static_root=None) -> CdnUrl:
+def _next_it(gs, mount=None, app=None, static_root=None) -> AssetUrl:
     if mount:
         uri_path = mount.path
     else:
@@ -217,7 +217,7 @@ def _next_it(gs, mount=None, app=None, static_root=None) -> CdnUrl:
     css = file_to_uri(css_file, static_root, uri_path)
     js = file_to_uri(js_file, static_root, uri_path)
     redoc = file_to_uri(redoc_file, static_root, uri_path)
-    return CdnUrl(css=css, js=js, redoc=redoc)
+    return AssetUrl(css=css, js=js, redoc=redoc)
 
 
 def local_file(app, static_root: Union[Path, None] = None):
