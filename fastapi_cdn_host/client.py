@@ -2,7 +2,7 @@ import logging
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import anyio
 import httpx
@@ -82,6 +82,7 @@ class AssetUrl:
     css: Annotated[str, "URL of swagger-ui.css"]
     js: Annotated[str, "URL of swagger-ui-bundle.js"]
     redoc: Annotated[str, "URL of redoc.standalone.js"]
+    favicon: Annotated[Optional[str], "URL of favicon.png/favicon.ico"] = None
 
 
 class CdnHostBuilder:
@@ -89,12 +90,13 @@ class CdnHostBuilder:
     swagger_files = {"css": "swagger-ui.css", "js": "swagger-ui-bundle.js"}
     redoc_file = "redoc.standalone.js"
 
-    def __init__(self, app=None, docs_cdn_host=None) -> None:
+    def __init__(self, app=None, docs_cdn_host=None, favicon_url=None) -> None:
         self.app = app
         self.docs_cdn_host = docs_cdn_host
+        self.favicon_url = favicon_url
 
     def run(self) -> AssetUrl:
-        if _urls := local_file(self.app):
+        if _urls := local_file(self.app, favicon_url=self.favicon_url):
             return _urls
         css_urls: List[str] = []
         they: List[tuple] = []
@@ -121,23 +123,7 @@ class CdnHostBuilder:
             redoc_path = fast_host[0] + redoc_path
         redoc = redoc_path + self.redoc_file
         logger.info(f"Select cdn: {fast_host[0]} to serve swagger css/js")
-        return AssetUrl(css=css, js=js, redoc=redoc)
-
-
-def monkey_patch_for_docs_ui(
-    app: FastAPI, docs_cdn_host: Union[CdnHostEnum, CdnHostInfoType, Path, None] = None
-) -> None:
-    if not app.openapi_url or (not app.docs_url and not app.redoc_url):
-        return
-    urls = CdnHostBuilder(app, docs_cdn_host).run()
-    if app.docs_url:
-        for i, route in enumerate(app.routes):
-            if getattr(route, "path", "") == app.docs_url:
-                new_docs_url(i, urls, app, app.docs_url)
-    if app.redoc_url:
-        for i, route in enumerate(app.routes):
-            if getattr(route, "path", "") == app.redoc_url:
-                new_redoc_url(i, urls, app, app.redoc_url)
+        return AssetUrl(css=css, js=js, redoc=redoc, favicon=self.favicon_url)
 
 
 def new_docs_url(index: int, urls: AssetUrl, app: FastAPI, docs_url: str):
@@ -151,6 +137,9 @@ def new_docs_url(index: int, urls: AssetUrl, app: FastAPI, docs_url: str):
         oauth2_redirect_url = self.swagger_ui_oauth2_redirect_url
         if oauth2_redirect_url:
             oauth2_redirect_url = root_path + oauth2_redirect_url
+        kw: Dict[str, str] = {}
+        if urls.favicon:
+            kw["swagger_favicon_url"] = urls.favicon
         return get_swagger_ui_html(
             openapi_url=openapi_url,
             title=self.title + " - Swagger UI",
@@ -159,6 +148,7 @@ def new_docs_url(index: int, urls: AssetUrl, app: FastAPI, docs_url: str):
             oauth2_redirect_url=oauth2_redirect_url,
             init_oauth=self.swagger_ui_init_oauth,
             swagger_ui_parameters=self.swagger_ui_parameters,
+            **kw,
         )
 
     app.routes[index] = APIRoute(docs_url, swagger_ui_html, include_in_schema=False)
@@ -179,10 +169,10 @@ def new_redoc_url(index: int, urls: AssetUrl, app: FastAPI, redoc_url: str):
     app.routes[index] = APIRoute(redoc_url, redoc_html, include_in_schema=False)
 
 
-def _maybe(static_root: Path, mount=None, app=None) -> Optional[AssetUrl]:
+def _maybe(static_root: Path, mount=None, app=None, favicon=None) -> Optional[AssetUrl]:
     if gs := list(static_root.rglob("swagger-ui*.css")):
         logger.info(f"Using local files in {static_root} to serve docs assets.")
-        return _next_it(gs, mount, app, static_root)
+        return _next_it(gs, mount, app, static_root, favicon)
     return None
 
 
@@ -192,7 +182,7 @@ def get_latest_one(gs: List[Path]) -> Path:
     return gs[0]
 
 
-def _next_it(gs, mount=None, app=None, static_root=None) -> AssetUrl:
+def _next_it(gs, mount=None, app=None, static_root=None, favicon=None) -> AssetUrl:
     if mount:
         uri_path = mount.path
     else:
@@ -217,17 +207,49 @@ def _next_it(gs, mount=None, app=None, static_root=None) -> AssetUrl:
     css = file_to_uri(css_file, static_root, uri_path)
     js = file_to_uri(js_file, static_root, uri_path)
     redoc = file_to_uri(redoc_file, static_root, uri_path)
-    return AssetUrl(css=css, js=js, redoc=redoc)
+    if favicon is None:
+        favicon = favicon_file = None
+        if _favicon := (
+            list(
+                static_root.rglob("favicon.png")
+                or list(static_root.rglob("favicon.ico"))
+            )
+        ):
+            favicon_file = get_latest_one(_favicon)
+        if favicon_file is not None:
+            favicon = file_to_uri(favicon_file, static_root, uri_path)
+    return AssetUrl(css=css, js=js, redoc=redoc, favicon=favicon)
 
 
-def local_file(app, static_root: Union[Path, None] = None):
+def local_file(
+    app, static_root: Union[Path, None] = None, favicon_url: Union[str, None] = None
+):
     if static_root is not None:
         return _maybe(static_root, app=app)
     if mounts := [r for r in app.routes if isinstance(r, Mount)]:
         for m in mounts:
             for d in m.app.all_directories:  # type: ignore[attr-defined]
-                if r := _maybe(d, mount=m, app=app):
+                if r := _maybe(d, mount=m, app=app, favicon=favicon_url):
                     return r
     else:
         if (static_root := Path("static")).exists():
-            return _maybe(static_root, app=app)
+            return _maybe(static_root, app=app, favicon=favicon_url)
+
+
+def monkey_patch_for_docs_ui(
+    app: FastAPI,
+    docs_cdn_host: Union[CdnHostEnum, CdnHostInfoType, Path, None] = None,
+    favicon_url: Union[str, None] = None,
+) -> None:
+    if not app.openapi_url or (not app.docs_url and not app.redoc_url):
+        logger.info("API docs not activated, skip monkey patch.")
+        return
+    urls = CdnHostBuilder(app, docs_cdn_host, favicon_url).run()
+    if app.docs_url:
+        for i, route in enumerate(app.routes):
+            if getattr(route, "path", "") == app.docs_url:
+                new_docs_url(i, urls, app, app.docs_url)
+    if app.redoc_url:
+        for i, route in enumerate(app.routes):
+            if getattr(route, "path", "") == app.redoc_url:
+                new_redoc_url(i, urls, app, app.redoc_url)
