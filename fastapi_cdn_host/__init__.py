@@ -1,1 +1,1 @@
-from .client import monkey_patch_for_docs_ui
+from .client import monkey_patch_for_docs_ui  # NOQA: F401

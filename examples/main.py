@@ -5,7 +5,6 @@ from pathlib import Path
 import uvicorn  # type:ignore
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
-from fastapi.staticfiles import StaticFiles
 
 from fastapi_cdn_host import monkey_patch_for_docs_ui
 
@@ -19,7 +18,7 @@ async def to_docs():
 
 @app.get("/app")
 async def get_app(request: Request) -> dict:
-    return {'routes': str(request.app.routes)}
+    return {"routes": str(request.app.routes)}
 
 
 @app.post("/test")
@@ -34,6 +33,7 @@ monkey_patch_for_docs_ui(app)
 
 def runserver() -> None:
     import os
+    import subprocess
 
     root_app = Path(__file__).stem + ":app"
     auto_reload = "PYCHARM_HOSTED" not in os.environ
@@ -42,7 +42,7 @@ def runserver() -> None:
     if sys.argv[1:]:
         port = int(sys.argv[1])
         host = "127.0.0.1"
-        os.system(f'open http://{host}:{port}')
+        subprocess.run(f"open http://{host}:{port}".split())
     uvicorn.run(root_app, host=host, port=port, reload=auto_reload)
 
 
