@@ -17,7 +17,7 @@ Otherwise make concurrent http requests by httpx to find out which third part cd
 pip install fastapi-cdn-host
 ```
 
-## Usage::
+## Usage
 ```py
 from fastapi import FastAPI
 from fastapi_cdn_host import monkey_patch_for_docs_ui
