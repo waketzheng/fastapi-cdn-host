@@ -40,17 +40,15 @@ async def fetch(client, url, results, index) -> None:
 
 async def find_fastest_host(urls: List[str], total_seconds=5, loop_interval=0.1) -> str:
     results = [None] * len(urls)
-    async with (
-        anyio.create_task_group() as tg,
-        httpx.AsyncClient(timeout=total_seconds) as client,
-    ):
-        for i, url in enumerate(urls):
-            tg.start_soon(fetch, client, url, results, i)
-        for _ in range(int(total_seconds / loop_interval) + 1):
-            if any(r is not None for r in results):
-                tg.cancel_scope.cancel()
-                break
-            await anyio.sleep(loop_interval)
+    async with anyio.create_task_group() as tg:
+        async with httpx.AsyncClient(timeout=total_seconds) as client:
+            for i, url in enumerate(urls):
+                tg.start_soon(fetch, client, url, results, i)
+            for _ in range(int(total_seconds / loop_interval) + 1):
+                if any(r is not None for r in results):
+                    tg.cancel_scope.cancel()
+                    break
+                await anyio.sleep(loop_interval)
     for url, res in zip(urls, results):
         if res is not None:
             return url
@@ -96,8 +94,13 @@ class CdnHostBuilder:
         self.favicon_url = favicon_url
 
     def run(self) -> AssetUrl:
-        if _urls := local_file(self.app, favicon_url=self.favicon_url):
-            return _urls
+        if urls := local_file(self.app, favicon_url=self.favicon_url):
+            if root := self.app.request.scope.get("root_path"):
+                urls.js = root + urls.js
+                urls.css = root + urls.css
+                urls.redoc = root + urls.redoc
+                urls.favicon = urls.favicon and (root + urls.favicon)
+            return urls
         css_urls: List[str] = []
         they: List[tuple] = []
         for cdn_host in CdnHostEnum:
@@ -241,6 +244,12 @@ def monkey_patch_for_docs_ui(
     docs_cdn_host: Union[CdnHostEnum, CdnHostInfoType, Path, None] = None,
     favicon_url: Union[str, None] = None,
 ) -> None:
+    """Use local static files or the faster CDN host for docs asset(swagger-ui)
+
+    :param app: the FastAPI object
+    :param docs_cdn_host: static root path or CDN host info
+    :param favicon_url: docs page logo
+    """
     if not app.openapi_url or (not app.docs_url and not app.redoc_url):
         logger.info("API docs not activated, skip monkey patch.")
         return
