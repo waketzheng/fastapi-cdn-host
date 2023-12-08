@@ -28,43 +28,35 @@ CdnHostInfoType = Union[
 ]
 
 
-async def fetch(client, url, results, index) -> None:
-    try:
-        r = await client.get(url)
-    except (httpx.ConnectError, httpx.ReadError):
-        ...
-    else:
-        if r.status_code < 300:
-            results[index] = r.content
+class HttpSpider:
+    @staticmethod
+    async def fetch(client, url, results, index) -> None:
+        try:
+            r = await client.get(url)
+        except (httpx.ConnectError, httpx.ReadError):
+            ...
+        else:
+            if r.status_code < 300:
+                results[index] = r.content
 
-
-async def find_fastest_host(urls: List[str], total_seconds=5, loop_interval=0.1) -> str:
-    results = [None] * len(urls)
-    async with anyio.create_task_group() as tg:
-        async with httpx.AsyncClient(timeout=total_seconds) as client:
-            for i, url in enumerate(urls):
-                tg.start_soon(fetch, client, url, results, i)
-            for _ in range(int(total_seconds / loop_interval) + 1):
-                if any(r is not None for r in results):
-                    tg.cancel_scope.cancel()
-                    break
-                await anyio.sleep(loop_interval)
-    for url, res in zip(urls, results):
-        if res is not None:
-            return url
-    return urls[0]
-
-
-def run_async(async_func, *args) -> Any:
-    result = [None]
-
-    async def runner():
-        result[0] = await async_func(*args)
-
-    with anyio.from_thread.start_blocking_portal() as portal:
-        portal.call(runner)
-
-    return result[0]
+    @classmethod
+    async def find_fastest_host(
+        cls, urls: List[str], total_seconds=5, loop_interval=0.1
+    ) -> str:
+        results = [None] * len(urls)
+        async with anyio.create_task_group() as tg:
+            async with httpx.AsyncClient(timeout=total_seconds) as client:
+                for i, url in enumerate(urls):
+                    tg.start_soon(cls.fetch, client, url, results, i)
+                for _ in range(int(total_seconds / loop_interval) + 1):
+                    if any(r is not None for r in results):
+                        tg.cancel_scope.cancel()
+                        break
+                    await anyio.sleep(loop_interval)
+        for url, res in zip(urls, results):
+            if res is not None:
+                return url
+        return urls[0]
 
 
 class CdnHostEnum(Enum):
@@ -93,6 +85,18 @@ class CdnHostBuilder:
         self.docs_cdn_host = docs_cdn_host
         self.favicon_url = favicon_url
 
+    @staticmethod
+    def run_async(async_func, *args) -> Any:
+        result = [None]
+
+        async def runner():
+            result[0] = await async_func(*args)
+
+        with anyio.from_thread.start_blocking_portal() as portal:
+            portal.call(runner)
+
+        return result[0]
+
     def run(self) -> AssetUrl:
         if urls := local_file(self.app, favicon_url=self.favicon_url):
             if root := self.app.request.scope.get("root_path"):
@@ -101,7 +105,7 @@ class CdnHostBuilder:
                 urls.redoc = root + urls.redoc
                 urls.favicon = urls.favicon and (root + urls.favicon)
             return urls
-        return run_async(self.sniff_the_fastest, self.favicon_url)
+        return self.run_async(self.sniff_the_fastest, self.favicon_url)
 
     @classmethod
     async def sniff_the_fastest(cls, favicon_url=None) -> AssetUrl:
@@ -119,7 +123,7 @@ class CdnHostBuilder:
             path = path.format(version=cls.swagger_ui_version)
             url = host + path + cls.swagger_files["css"]
             css_urls.append(url)
-        fast_one = await find_fastest_host(css_urls)
+        fast_one = await HttpSpider.find_fastest_host(css_urls)
         index = css_urls.index(fast_one)  # to be optimized
         fast_host = they[index]
         css = fast_one
