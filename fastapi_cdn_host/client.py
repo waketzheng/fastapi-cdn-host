@@ -55,11 +55,11 @@ async def find_fastest_host(urls: List[str], total_seconds=5, loop_interval=0.1)
     return urls[0]
 
 
-def run_async(afunc, *args) -> Any:
+def run_async(async_func, *args) -> Any:
     result = [None]
 
     async def runner():
-        result[0] = await afunc(*args)
+        result[0] = await async_func(*args)
 
     with anyio.from_thread.start_blocking_portal() as portal:
         portal.call(runner)
@@ -101,6 +101,10 @@ class CdnHostBuilder:
                 urls.redoc = root + urls.redoc
                 urls.favicon = urls.favicon and (root + urls.favicon)
             return urls
+        return run_async(self.sniff_the_fastest, self.favicon_url)
+
+    @classmethod
+    async def sniff_the_fastest(cls, favicon_url=None) -> AssetUrl:
         css_urls: List[str] = []
         they: List[tuple] = []
         for cdn_host in CdnHostEnum:
@@ -112,25 +116,24 @@ class CdnHostBuilder:
                 host = host[0]
             else:
                 they.append((host, DEFAULT_ASSET_PATH))
-            path = path.format(version=self.swagger_ui_version)
-            url = host + path + self.swagger_files["css"]
+            path = path.format(version=cls.swagger_ui_version)
+            url = host + path + cls.swagger_files["css"]
             css_urls.append(url)
-        fast_one = run_async(find_fastest_host, css_urls)
-        index = css_urls.index(fast_one)  # to be optimize
+        fast_one = await find_fastest_host(css_urls)
+        index = css_urls.index(fast_one)  # to be optimized
         fast_host = they[index]
         css = fast_one
-        swagger_ui_path = fast_host[1][0].format(version=self.swagger_ui_version)
-        js = fast_host[0] + swagger_ui_path + self.swagger_files["js"]
+        swagger_ui_path = fast_host[1][0].format(version=cls.swagger_ui_version)
+        js = fast_host[0] + swagger_ui_path + cls.swagger_files["js"]
         redoc_path = fast_host[1][1]
         if not redoc_path.startswith("http"):
             redoc_path = fast_host[0] + redoc_path
-        redoc = redoc_path + self.redoc_file
+        redoc = redoc_path + cls.redoc_file
         logger.info(f"Select cdn: {fast_host[0]} to serve swagger css/js")
-        return AssetUrl(css=css, js=js, redoc=redoc, favicon=self.favicon_url)
+        return AssetUrl(css=css, js=js, redoc=redoc, favicon=favicon_url)
 
 
-def new_docs_url(index: int, urls: AssetUrl, app: FastAPI, docs_url: str):
-    self = app
+def new_docs_url(index: int, urls: AssetUrl, self: FastAPI, docs_url: str) -> None:
     swagger_js_url = urls.js
     swagger_css_url = urls.css
 
@@ -154,12 +157,10 @@ def new_docs_url(index: int, urls: AssetUrl, app: FastAPI, docs_url: str):
             **kw,
         )
 
-    app.routes[index] = APIRoute(docs_url, swagger_ui_html, include_in_schema=False)
+    self.routes[index] = APIRoute(docs_url, swagger_ui_html, include_in_schema=False)
 
 
-def new_redoc_url(index: int, urls: AssetUrl, app: FastAPI, redoc_url: str):
-    self = app
-
+def new_redoc_url(index: int, urls: AssetUrl, self: FastAPI, redoc_url: str) -> None:
     async def redoc_html(req: Request) -> HTMLResponse:
         root_path = req.scope.get("root_path", "").rstrip("/")
         openapi_url = root_path + self.openapi_url
@@ -169,7 +170,7 @@ def new_redoc_url(index: int, urls: AssetUrl, app: FastAPI, redoc_url: str):
             title=self.title + " - ReDoc",
         )
 
-    app.routes[index] = APIRoute(redoc_url, redoc_html, include_in_schema=False)
+    self.routes[index] = APIRoute(redoc_url, redoc_html, include_in_schema=False)
 
 
 def _maybe(static_root: Path, mount=None, app=None, favicon=None) -> Optional[AssetUrl]:
@@ -183,6 +184,10 @@ def get_latest_one(gs: List[Path]) -> Path:
     if len(gs) > 1:
         gs = sorted(gs, key=lambda x: x.stat().st_mtime, reverse=True)
     return gs[0]
+
+
+def file_to_uri(p: Path, static_root: Path, uri_path: str) -> str:
+    return uri_path.rstrip("/") + "/" + p.relative_to(static_root).as_posix()
 
 
 def _next_it(gs, mount=None, app=None, static_root=None, favicon=None) -> AssetUrl:
@@ -203,9 +208,6 @@ def _next_it(gs, mount=None, app=None, static_root=None, favicon=None) -> AssetU
         redoc_file = get_latest_one(_redoc)
     else:
         redoc_file = css_file.with_name(redoc_name)
-
-    def file_to_uri(p: Path, static_root: Path, uri_path: str) -> str:
-        return uri_path.rstrip("/") + "/" + p.relative_to(static_root).as_posix()
 
     css = file_to_uri(css_file, static_root, uri_path)
     js = file_to_uri(js_file, static_root, uri_path)
@@ -250,15 +252,17 @@ def monkey_patch_for_docs_ui(
     :param docs_cdn_host: static root path or CDN host info
     :param favicon_url: docs page logo
     """
-    if not app.openapi_url or (not app.docs_url and not app.redoc_url):
+    openapi_url = getattr(app, "openapi_url", "")
+    docs_url, redoc_url = getattr(app, "docs_url", ""), getattr(app, "redoc_url", "")
+    if not openapi_url or (not docs_url and not redoc_url):
         logger.info("API docs not activated, skip monkey patch.")
         return
     urls = CdnHostBuilder(app, docs_cdn_host, favicon_url).run()
-    if app.docs_url:
+    if docs_url:
         for i, route in enumerate(app.routes):
-            if getattr(route, "path", "") == app.docs_url:
-                new_docs_url(i, urls, app, app.docs_url)
-    if app.redoc_url:
+            if getattr(route, "path", "") == docs_url:
+                new_docs_url(i, urls, app, docs_url)
+    if redoc_url:
         for i, route in enumerate(app.routes):
-            if getattr(route, "path", "") == app.redoc_url:
-                new_redoc_url(i, urls, app, app.redoc_url)
+            if getattr(route, "path", "") == redoc_url:
+                new_redoc_url(i, urls, app, redoc_url)
