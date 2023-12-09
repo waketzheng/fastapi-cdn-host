@@ -33,7 +33,7 @@ class HttpSpider:
     async def fetch(client, url, results, index) -> None:
         try:
             r = await client.get(url)
-        except (httpx.ConnectError, httpx.ReadError):
+        except (httpx.ConnectError, httpx.ReadError, httpx.ConnectTimeout):
             ...
         else:
             if r.status_code < 300:
@@ -108,11 +108,14 @@ class CdnHostBuilder:
         return self.run_async(self.sniff_the_fastest, self.favicon_url)
 
     @classmethod
-    async def sniff_the_fastest(cls, favicon_url=None) -> AssetUrl:
+    def build_race_data(
+        cls,
+        competitors: List[Union[CdnHostInfoType, CdnHostEnum]],
+    ) -> Tuple[List[str], List[tuple]]:
         css_urls: List[str] = []
         they: List[tuple] = []
-        for cdn_host in CdnHostEnum:
-            host = cdn_host.value
+        for cdn_host in competitors:
+            host = getattr(cdn_host, "value", cdn_host)
             path = DEFAULT_ASSET_PATH[0]
             if isinstance(host, tuple):
                 they.append((host, path))
@@ -123,15 +126,19 @@ class CdnHostBuilder:
             path = path.format(version=cls.swagger_ui_version)
             url = host + path + cls.swagger_files["css"]
             css_urls.append(url)
-        fast_one = await HttpSpider.find_fastest_host(css_urls)
-        index = css_urls.index(fast_one)  # to be optimized
-        fast_host = they[index]
-        css = fast_one
-        swagger_ui_path = fast_host[1][0].format(version=cls.swagger_ui_version)
-        js = fast_host[0] + swagger_ui_path + cls.swagger_files["js"]
-        redoc_path = fast_host[1][1]
+        return css_urls, they
+
+    @classmethod
+    async def sniff_the_fastest(cls, favicon_url=None) -> AssetUrl:
+        css_urls, they = cls.build_race_data(list(CdnHostEnum))
+        fast_css_url = await HttpSpider.find_fastest_host(css_urls)
+        fast_host, fast_asset_path = they[css_urls.index(fast_css_url)]
+        css = fast_css_url
+        swagger_ui_path = fast_asset_path[0].format(version=cls.swagger_ui_version)
+        js = fast_host + swagger_ui_path + cls.swagger_files["js"]
+        redoc_path = fast_asset_path[1]
         if not redoc_path.startswith("http"):
-            redoc_path = fast_host[0] + redoc_path
+            redoc_path = fast_host + redoc_path
         redoc = redoc_path + cls.redoc_file
         logger.info(f"Select cdn: {fast_host[0]} to serve swagger css/js")
         return AssetUrl(css=css, js=js, redoc=redoc, favicon=favicon_url)

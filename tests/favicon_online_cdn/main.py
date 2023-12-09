@@ -17,4 +17,4 @@ async def get_app(request: Request) -> dict:
     return {"routes": str(request.app.routes)}
 
 
-monkey_patch_for_docs_ui(app, favicon_url='https://ubuntu.com/favicon.ico')
+monkey_patch_for_docs_ui(app, favicon_url="https://ubuntu.com/favicon.ico")
