@@ -44,5 +44,7 @@ jobs:
           poetry run ruff .
           poetry run mypy .
           poetry run bandit -r fastapi_cdn_host
+      - name: test
+        run: ./scripts/test.sh
       - name: build
         run: poetry build
