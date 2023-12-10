@@ -98,14 +98,23 @@ class CdnHostBuilder:
         return result[0]
 
     def run(self) -> AssetUrl:
-        if urls := local_file(self.app, favicon_url=self.favicon_url):
-            if root := self.app.request.scope.get("root_path"):
-                urls.js = root + urls.js
-                urls.css = root + urls.css
-                urls.redoc = root + urls.redoc
-                urls.favicon = urls.favicon and (root + urls.favicon)
-            return urls
+        if isinstance(self.docs_cdn_host, Path):
+            if urls := local_file(
+                self.app, static_root=self.docs_cdn_host, favicon_url=self.favicon_url
+            ):
+                return urls
+        else:
+            if urls := local_file(self.app, favicon_url=self.favicon_url):
+                return urls
         return self.run_async(self.sniff_the_fastest, self.favicon_url)
+
+    @staticmethod
+    def fill_root_path(urls, root):
+        if root:
+            for attr in ("js", "css", "redoc", "favicon"):
+                if (v := getattr(urls, attr)) and not v.startswith(root):
+                    setattr(urls, attr, root + v)
+        return urls
 
     @classmethod
     def build_race_data(
@@ -145,11 +154,9 @@ class CdnHostBuilder:
 
 
 def new_docs_url(index: int, urls: AssetUrl, self: FastAPI, docs_url: str) -> None:
-    swagger_js_url = urls.js
-    swagger_css_url = urls.css
-
     async def swagger_ui_html(req: Request) -> HTMLResponse:
         root_path = req.scope.get("root_path", "").rstrip("/")
+        asset_urls = CdnHostBuilder.fill_root_path(urls, root_path)
         openapi_url = root_path + self.openapi_url
         oauth2_redirect_url = self.swagger_ui_oauth2_redirect_url
         if oauth2_redirect_url:
@@ -160,8 +167,8 @@ def new_docs_url(index: int, urls: AssetUrl, self: FastAPI, docs_url: str) -> No
         return get_swagger_ui_html(
             openapi_url=openapi_url,
             title=self.title + " - Swagger UI",
-            swagger_js_url=swagger_js_url,
-            swagger_css_url=swagger_css_url,
+            swagger_js_url=asset_urls.js,
+            swagger_css_url=asset_urls.css,
             oauth2_redirect_url=oauth2_redirect_url,
             init_oauth=self.swagger_ui_init_oauth,
             swagger_ui_parameters=self.swagger_ui_parameters,
@@ -174,10 +181,11 @@ def new_docs_url(index: int, urls: AssetUrl, self: FastAPI, docs_url: str) -> No
 def new_redoc_url(index: int, urls: AssetUrl, self: FastAPI, redoc_url: str) -> None:
     async def redoc_html(req: Request) -> HTMLResponse:
         root_path = req.scope.get("root_path", "").rstrip("/")
+        asset_urls = CdnHostBuilder.fill_root_path(urls, root_path)
         openapi_url = root_path + self.openapi_url
         return get_redoc_html(
             openapi_url=openapi_url,
-            redoc_js_url=urls.redoc,
+            redoc_js_url=asset_urls.redoc,
             title=self.title + " - ReDoc",
         )
 
@@ -226,10 +234,8 @@ def _next_it(gs, mount=None, app=None, static_root=None, favicon=None) -> AssetU
     if favicon is None:
         favicon = favicon_file = None
         if _favicon := (
-            list(
-                static_root.rglob("favicon.png")
-                or list(static_root.rglob("favicon.ico"))
-            )
+            list(static_root.rglob("favicon.png"))
+            or list(static_root.rglob("favicon.ico"))
         ):
             favicon_file = get_latest_one(_favicon)
         if favicon_file is not None:

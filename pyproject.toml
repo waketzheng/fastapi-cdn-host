@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "fastapi-cdn-host"
-version = "0.2.0"
+version = "0.2.1"
 description = ""
 authors = ["Waket Zheng <waketzheng@gmail.com>"]
 readme = "README.md"
@@ -26,6 +26,7 @@ profile="black"
 [tool.mypy]
 pretty = true
 ignore_missing_imports = true
+explicit_package_bases = true
 
 [tool.ruff.per-file-ignores]
 "test_*.py" = ["E501"]
