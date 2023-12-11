@@ -98,14 +98,11 @@ class CdnHostBuilder:
         return result[0]
 
     def run(self) -> AssetUrl:
+        static_builder = StaticBuilder(self.app, favicon_url=self.favicon_url)
         if isinstance(self.docs_cdn_host, Path):
-            if urls := local_file(
-                self.app, static_root=self.docs_cdn_host, favicon_url=self.favicon_url
-            ):
-                return urls
-        else:
-            if urls := local_file(self.app, favicon_url=self.favicon_url):
-                return urls
+            static_builder.static_root = self.docs_cdn_host
+        if urls := static_builder.find():
+            return urls
         return self.run_async(self.sniff_the_fastest, self.favicon_url)
 
     @staticmethod
@@ -153,109 +150,132 @@ class CdnHostBuilder:
         return AssetUrl(css=css, js=js, redoc=redoc, favicon=favicon_url)
 
 
-def new_docs_url(index: int, urls: AssetUrl, self: FastAPI, docs_url: str) -> None:
-    async def swagger_ui_html(req: Request) -> HTMLResponse:
-        root_path = req.scope.get("root_path", "").rstrip("/")
-        asset_urls = CdnHostBuilder.fill_root_path(urls, root_path)
-        openapi_url = root_path + self.openapi_url
-        oauth2_redirect_url = self.swagger_ui_oauth2_redirect_url
-        if oauth2_redirect_url:
-            oauth2_redirect_url = root_path + oauth2_redirect_url
-        kw: Dict[str, str] = {}
-        if urls.favicon:
-            kw["swagger_favicon_url"] = urls.favicon
-        return get_swagger_ui_html(
-            openapi_url=openapi_url,
-            title=self.title + " - Swagger UI",
-            swagger_js_url=asset_urls.js,
-            swagger_css_url=asset_urls.css,
-            oauth2_redirect_url=oauth2_redirect_url,
-            init_oauth=self.swagger_ui_init_oauth,
-            swagger_ui_parameters=self.swagger_ui_parameters,
-            **kw,
-        )
+class DocsBuilder:
+    def __init__(self, index: int) -> None:
+        self.index = index
 
-    self.routes[index] = APIRoute(docs_url, swagger_ui_html, include_in_schema=False)
+    def update_entrypoint(self, func, app: FastAPI, url: str) -> None:
+        app.routes[self.index] = APIRoute(url, func, include_in_schema=False)
 
+    def update_docs_entrypoint(self, urls: AssetUrl, app: FastAPI, url: str) -> None:
+        async def swagger_ui_html(req: Request) -> HTMLResponse:
+            root_path = req.scope.get("root_path", "").rstrip("/")
+            asset_urls = CdnHostBuilder.fill_root_path(urls, root_path)
+            openapi_url = root_path + app.openapi_url
+            oauth2_redirect_url = app.swagger_ui_oauth2_redirect_url
+            if oauth2_redirect_url:
+                oauth2_redirect_url = root_path + oauth2_redirect_url
+            kw: Dict[str, str] = {}
+            if urls.favicon:
+                kw["swagger_favicon_url"] = urls.favicon
+            return get_swagger_ui_html(
+                openapi_url=openapi_url,
+                title=app.title + " - Swagger UI",
+                swagger_js_url=asset_urls.js,
+                swagger_css_url=asset_urls.css,
+                oauth2_redirect_url=oauth2_redirect_url,
+                init_oauth=app.swagger_ui_init_oauth,
+                swagger_ui_parameters=app.swagger_ui_parameters,
+                **kw,
+            )
 
-def new_redoc_url(index: int, urls: AssetUrl, self: FastAPI, redoc_url: str) -> None:
-    async def redoc_html(req: Request) -> HTMLResponse:
-        root_path = req.scope.get("root_path", "").rstrip("/")
-        asset_urls = CdnHostBuilder.fill_root_path(urls, root_path)
-        openapi_url = root_path + self.openapi_url
-        return get_redoc_html(
-            openapi_url=openapi_url,
-            redoc_js_url=asset_urls.redoc,
-            title=self.title + " - ReDoc",
-        )
+        self.update_entrypoint(swagger_ui_html, app, url)
 
-    self.routes[index] = APIRoute(redoc_url, redoc_html, include_in_schema=False)
+    def update_redoc_entrypoint(self, urls: AssetUrl, app: FastAPI, url: str) -> None:
+        async def redoc_html(req: Request) -> HTMLResponse:
+            root_path = req.scope.get("root_path", "").rstrip("/")
+            asset_urls = CdnHostBuilder.fill_root_path(urls, root_path)
+            openapi_url = root_path + app.openapi_url
+            return get_redoc_html(
+                openapi_url=openapi_url,
+                redoc_js_url=asset_urls.redoc,
+                title=app.title + " - ReDoc",
+            )
 
-
-def _maybe(static_root: Path, mount=None, app=None, favicon=None) -> Optional[AssetUrl]:
-    if gs := list(static_root.rglob("swagger-ui*.css")):
-        logger.info(f"Using local files in {static_root} to serve docs assets.")
-        return _next_it(gs, mount, app, static_root, favicon)
-    return None
-
-
-def get_latest_one(gs: List[Path]) -> Path:
-    if len(gs) > 1:
-        gs = sorted(gs, key=lambda x: x.stat().st_mtime, reverse=True)
-    return gs[0]
+        self.update_entrypoint(redoc_html, app, url)
 
 
-def file_to_uri(p: Path, static_root: Path, uri_path: str) -> str:
-    return uri_path.rstrip("/") + "/" + p.relative_to(static_root).as_posix()
+class StaticBuilder:
+    def __init__(
+        self,
+        app,
+        static_root: Union[Path, None] = None,
+        favicon_url: Union[str, None] = None,
+    ):
+        self.app = app
+        self.static_root = static_root
+        self.favicon_url = favicon_url
 
+    def find(self):
+        return self.local_file(self.app, self.static_root, self.favicon_url)
 
-def _next_it(gs, mount=None, app=None, static_root=None, favicon=None) -> AssetUrl:
-    if mount:
-        uri_path = mount.path
-    else:
-        uri_path = "/static"
-        if all(r.path != uri_path for r in app.routes):
-            app.mount(uri_path, StaticFiles(directory=static_root), name="static")
-            logger.info(f"Auto mount static files to {uri_path} from {static_root}")
-    css_file = get_latest_one(gs)
-    if _js := list(static_root.rglob("swagger-ui*.js")):
-        js_file = get_latest_one(_js)
-    else:
-        js_file = css_file.with_name(CdnHostBuilder.swagger_files["js"])
-    redoc_name = CdnHostBuilder.redoc_file
-    if _redoc := list(static_root.rglob(redoc_name)):
-        redoc_file = get_latest_one(_redoc)
-    else:
-        redoc_file = css_file.with_name(redoc_name)
+    def _maybe(
+        self, static_root: Path, mount=None, app=None, favicon=None
+    ) -> Optional[AssetUrl]:
+        if gs := list(static_root.rglob("swagger-ui*.css")):
+            logger.info(f"Using local files in {static_root} to serve docs assets.")
+            return self._next_it(gs, mount, app, static_root, favicon)
+        return None
 
-    css = file_to_uri(css_file, static_root, uri_path)
-    js = file_to_uri(js_file, static_root, uri_path)
-    redoc = file_to_uri(redoc_file, static_root, uri_path)
-    if favicon is None:
-        favicon = favicon_file = None
-        if _favicon := (
-            list(static_root.rglob("favicon.png"))
-            or list(static_root.rglob("favicon.ico"))
-        ):
-            favicon_file = get_latest_one(_favicon)
-        if favicon_file is not None:
-            favicon = file_to_uri(favicon_file, static_root, uri_path)
-    return AssetUrl(css=css, js=js, redoc=redoc, favicon=favicon)
+    def get_latest_one(self, gs: List[Path]) -> Path:
+        if len(gs) > 1:
+            gs = sorted(gs, key=lambda x: x.stat().st_mtime, reverse=True)
+        return gs[0]
 
+    def file_to_uri(self, p: Path, static_root: Path, uri_path: str) -> str:
+        return uri_path.rstrip("/") + "/" + p.relative_to(static_root).as_posix()
 
-def local_file(
-    app, static_root: Union[Path, None] = None, favicon_url: Union[str, None] = None
-):
-    if static_root is not None:
-        return _maybe(static_root, app=app)
-    if mounts := [r for r in app.routes if isinstance(r, Mount)]:
-        for m in mounts:
-            for d in m.app.all_directories:  # type: ignore[attr-defined]
-                if r := _maybe(d, mount=m, app=app, favicon=favicon_url):
-                    return r
-    else:
-        if (static_root := Path("static")).exists():
-            return _maybe(static_root, app=app, favicon=favicon_url)
+    def _next_it(
+        self, gs, mount=None, app=None, static_root=None, favicon=None
+    ) -> AssetUrl:
+        if mount:
+            uri_path = mount.path
+        else:
+            uri_path = "/static"
+            if all(r.path != uri_path for r in app.routes):
+                app.mount(uri_path, StaticFiles(directory=static_root), name="static")
+                logger.info(f"Auto mount static files to {uri_path} from {static_root}")
+        css_file = self.get_latest_one(gs)
+        if _js := list(static_root.rglob("swagger-ui*.js")):
+            js_file = self.get_latest_one(_js)
+        else:
+            js_file = css_file.with_name(CdnHostBuilder.swagger_files["js"])
+        redoc_name = CdnHostBuilder.redoc_file
+        if _redoc := list(static_root.rglob(redoc_name)):
+            redoc_file = self.get_latest_one(_redoc)
+        else:
+            redoc_file = css_file.with_name(redoc_name)
+
+        css = self.file_to_uri(css_file, static_root, uri_path)
+        js = self.file_to_uri(js_file, static_root, uri_path)
+        redoc = self.file_to_uri(redoc_file, static_root, uri_path)
+        if favicon is None:
+            favicon = favicon_file = None
+            if _favicon := (
+                list(static_root.rglob("favicon.png"))
+                or list(static_root.rglob("favicon.ico"))
+            ):
+                favicon_file = self.get_latest_one(_favicon)
+            if favicon_file is not None:
+                favicon = self.file_to_uri(favicon_file, static_root, uri_path)
+        return AssetUrl(css=css, js=js, redoc=redoc, favicon=favicon)
+
+    def local_file(
+        self,
+        app,
+        static_root: Union[Path, None] = None,
+        favicon_url: Union[str, None] = None,
+    ):
+        if static_root is not None:
+            return self._maybe(static_root, app=app)
+        if mounts := [r for r in app.routes if isinstance(r, Mount)]:
+            for m in mounts:
+                for d in m.app.all_directories:  # type: ignore[attr-defined]
+                    if r := self._maybe(d, mount=m, app=app, favicon=favicon_url):
+                        return r
+        else:
+            if (static_root := Path("static")).exists():
+                return self._maybe(static_root, app=app, favicon=favicon_url)
 
 
 def monkey_patch_for_docs_ui(
@@ -278,8 +298,8 @@ def monkey_patch_for_docs_ui(
     if docs_url:
         for i, route in enumerate(app.routes):
             if getattr(route, "path", "") == docs_url:
-                new_docs_url(i, urls, app, docs_url)
+                DocsBuilder(i).update_docs_entrypoint(urls, app, docs_url)
     if redoc_url:
         for i, route in enumerate(app.routes):
             if getattr(route, "path", "") == redoc_url:
-                new_redoc_url(i, urls, app, redoc_url)
+                DocsBuilder(i).update_redoc_entrypoint(urls, app, redoc_url)
