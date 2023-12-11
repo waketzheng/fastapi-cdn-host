@@ -11,7 +11,7 @@ from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
 from fastapi.responses import HTMLResponse
 from fastapi.routing import APIRoute, Mount
 from fastapi.staticfiles import StaticFiles
-from typing_extensions import Annotated  # type: ignore [attr-defined]
+from typing_extensions import Annotated  # type: ignore[attr-defined]
 
 logger = logging.getLogger("fastapi-cdn-host")
 
@@ -217,12 +217,14 @@ class StaticBuilder:
             return self._next_it(gs, mount, app, static_root, favicon)
         return None
 
-    def get_latest_one(self, gs: List[Path]) -> Path:
+    @staticmethod
+    def get_latest_one(gs: List[Path]) -> Path:
         if len(gs) > 1:
             gs = sorted(gs, key=lambda x: x.stat().st_mtime, reverse=True)
         return gs[0]
 
-    def file_to_uri(self, p: Path, static_root: Path, uri_path: str) -> str:
+    @staticmethod
+    def file_to_uri(p: Path, static_root: Path, uri_path: str) -> str:
         return uri_path.rstrip("/") + "/" + p.relative_to(static_root).as_posix()
 
     def _next_it(
