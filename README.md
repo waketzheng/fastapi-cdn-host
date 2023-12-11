@@ -5,6 +5,7 @@
 ![Mypy coverage](https://img.shields.io/badge/mypy-100%25-green.svg)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![security: bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)
 
 Auto find swagger-ui in local files, if exist use them.
 Otherwise make concurrent http requests by httpx to find out which third part cdn host is the fastest one.
@@ -18,6 +19,7 @@ pip install fastapi-cdn-host
 ```
 
 ## Usage
+1. Let's say that the default docs CDN host https://cdn.jsdelivr.net is too slow in your network, while unpkg.com is much faster.
 ```py
 from fastapi import FastAPI
 from fastapi_cdn_host import monkey_patch_for_docs_ui
@@ -25,7 +27,52 @@ from fastapi_cdn_host import monkey_patch_for_docs_ui
 app = FastAPI()
 # include_routes ...
 
+monkey_patch_for_docs_ui(app)  # Will use `unpkg.com` to replace the `cdn.jsdelivr.net/npm`
+```
+2. In case of there are swagger-ui asset files in local directory named `static`
+```py
+# Will auto mount static, then use `/static/swagger-ui-bundle.js` and `/static/swagger-ui.css` as docs assets
 monkey_patch_for_docs_ui(app)
+```
+This line is equal to the following code:
+https://fastapi.tiangolo.com/how-to/custom-docs-ui-assets/?h=static#self-hosting-javascript-and-css-for-docs
+```py
+from fastapi import FastAPI
+from fastapi.openapi.docs import (
+    get_redoc_html,
+    get_swagger_ui_html,
+    get_swagger_ui_oauth2_redirect_html,
+)
+from fastapi.staticfiles import StaticFiles
+
+app = FastAPI(docs_url=None, redoc_url=None)
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+@app.get("/docs", include_in_schema=False)
+async def custom_swagger_ui_html():
+    return get_swagger_ui_html(
+        openapi_url=app.openapi_url,
+        title=app.title + " - Swagger UI",
+        oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
+        swagger_js_url="/static/swagger-ui-bundle.js",
+        swagger_css_url="/static/swagger-ui.css",
+    )
+
+
+@app.get(app.swagger_ui_oauth2_redirect_url, include_in_schema=False)
+async def swagger_ui_redirect():
+    return get_swagger_ui_oauth2_redirect_html()
+
+
+@app.get("/redoc", include_in_schema=False)
+async def redoc_html():
+    return get_redoc_html(
+        openapi_url=app.openapi_url,
+        title=app.title + " - ReDoc",
+        redoc_js_url="/static/redoc.standalone.js",
+    )
 ```
 
 ## License

@@ -2,7 +2,7 @@
 
 API接口文档页面有时候打开会很慢，因为它默认使用的是https://cdn.jsdelivr.net/npm
 
-为实现加快/docs页面的打开速度这么一个小小功能，常常需要放置N行代码来自定义文档的响应路由。
+为实现加快/docs页面的打开速度这么一个小小功能，常常需要放置N行代码来[自定义文档](https://fastapi.tiangolo.com/how-to/custom-docs-ui-assets/?h=static#custom-cdn-for-javascript-and-css)的响应路由。
 
 由于很多个项目都需要这么操作，故开发了一个插件了简化代码，现只需一行就搞定了：
 `monkey_patch_for_docs_ui(app)`
@@ -16,6 +16,8 @@ pip install fastapi-cdn-host
 ```
 
 ## 使用
+1. 国内访问fastapi接口文档页面的默认CDN(https://cdn.jsdelivr.net)会比较慢，使用插件后会自动对比它跟unpkg.com的速度，然后采用响应快的那个
+2. 如果是离线环境，这时候外部CDN是访问不了的，只需在同级目录下的static里放置swagger-ui-bundle.js和swagger-ui.css就会自动挂载它们。
 ```py
 from fastapi import FastAPI
 from fastapi_cdn_host import monkey_patch_for_docs_ui
