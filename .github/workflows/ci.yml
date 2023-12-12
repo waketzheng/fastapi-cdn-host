@@ -36,7 +36,7 @@ jobs:
       - name: Install requirements
         run: |
           poetry install
-          poetry run pip install isort black ruff mypy bandit
+          poetry run pip install isort black ruff mypy bandit coveralls
       - name: Check code style and Type Hint
         run: |
           poetry run isort --check-only --src=fastapi_cdn_host .
@@ -48,3 +48,21 @@ jobs:
         run: ./scripts/test.sh
       - name: build
         run: poetry build
+      - name: Upload Coverage
+        run: poetry run coveralls --service=github
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COVERALLS_FLAG_NAME: ${{ matrix.python-version }}
+          COVERALLS_PARALLEL: true
+
+  coveralls:
+    name: Finish Coveralls
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Finished
+        run: |
+          pip3 install --upgrade coveralls
+          coveralls --finish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

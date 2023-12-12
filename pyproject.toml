@@ -36,3 +36,8 @@ check_untyped_defs = true
 
 [tool.ruff.per-file-ignores]
 "test_*.py" = ["E501"]
+
+[tool.coverage.run]
+branch = true
+parallel=true
+source = ["fastapi_cdn_host"]

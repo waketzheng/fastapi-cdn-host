@@ -3,10 +3,12 @@
 set -e
 set -x
 
-pytest tests/online_cdn
-pytest tests/favicon_online_cdn
-cd tests/static_auto && pytest test_*.py
-cd ../static_mounted && pytest test_*.py
-cd ../custom_static_root && pytest test_*.py
-cd ../static_with_favicon && pytest test_*.py
-cd ../defined_root_path && pytest test_*.py
+coverage run -m pytest tests/online_cdn
+coverage run -m pytest tests/favicon_online_cdn
+cd tests/static_auto && coverage run -m pytest test_*.py
+cd ../static_mounted && coverage run -m pytest test_*.py
+cd ../custom_static_root && coverage run -m pytest test_*.py
+cd ../static_with_favicon && coverage run -m pytest test_*.py
+cd ../defined_root_path && coverage run -m pytest test_*.py
+cd ../.. && coverage combine
+coverage report -m
