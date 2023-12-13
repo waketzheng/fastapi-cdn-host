@@ -30,10 +30,17 @@ CdnHostInfoType = Union[
 
 class HttpSpider:
     @staticmethod
-    async def fetch(client, url, results, index) -> None:
+    async def fetch(
+        client: httpx.AsyncClient, url: str, results: list, index: int
+    ) -> None:
         try:
             r = await client.get(url)
-        except (httpx.ConnectError, httpx.ReadError, httpx.ConnectTimeout):
+        except (
+            httpx.ConnectError,
+            httpx.ReadError,
+            httpx.ConnectTimeout,
+            httpx.ReadTimeout,
+        ):
             ...
         else:
             if r.status_code < 300:
