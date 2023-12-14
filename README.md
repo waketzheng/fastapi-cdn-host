@@ -3,9 +3,8 @@
 [![LatestVersionInPypi](https://img.shields.io/pypi/v/fastapi-cdn-host.svg?style=flat)](https://pypi.python.org/pypi/fastapi-cdn-host)
 [![GithubActionResult](https://github.com/waketzheng/fastapi-cdn-host/workflows/ci/badge.svg)](https://github.com/waketzheng/fastapi-cdn-host/actions?query=workflow:ci)
 [![Coverage Status](https://coveralls.io/repos/github/waketzheng/fastapi-cdn-host/badge.svg?branch=main)](https://coveralls.io/github/waketzheng/fastapi-cdn-host?branch=main)
-![Mypy coverage](https://img.shields.io/badge/mypy-100%25-green.svg)
-[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![security: bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)
 
 Auto find swagger-ui in local files, if exist use them.
@@ -74,6 +73,14 @@ async def redoc_html():
         title=app.title + " - ReDoc",
         redoc_js_url="/static/redoc.standalone.js",
     )
+```
+3. If asset files are ready in private cdn
+```py
+# Will render /docs with the following asset urls:
+#   http://my-cdn.com/swagger-ui@latest/swagger-ui-bundle.js
+#   http://my-cdn.com/swagger-ui@latest/swagger-ui.css
+# render /redoc with: `http://my-cdn.com/redoc/next/redoc.standalone.js`
+monkey_patch_for_docs_ui(app, cdn_host=('http://my-cdn.com', ('/swagger-ui@latest/', '/redoc/next/')))
 ```
 
 ## License

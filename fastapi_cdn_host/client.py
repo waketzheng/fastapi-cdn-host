@@ -16,9 +16,10 @@ from typing_extensions import Annotated  # type: ignore[attr-defined]
 logger = logging.getLogger("fastapi-cdn-host")
 
 DEFAULT_ASSET_PATH = ("/swagger-ui-dist@{version}/", "/redoc@next/bundles/")
+OFFICIAL_REDOC = "https://cdn.redoc.ly/redoc/latest/bundles/"
 CdnPathInfoType = Tuple[
-    Annotated[str, "swagger-ui module path info"],
-    Annotated[str, "redoc path or url info"],
+    Annotated[str, "swagger-ui module path info(must startswith '/')"],
+    Annotated[str, "redoc path or url info(must startswith '/')"],
 ]
 CdnDomainType = Annotated[str, "Host for swagger-ui/redoc"]
 CdnHostInfoType = Union[
@@ -26,6 +27,23 @@ CdnHostInfoType = Union[
     Tuple[CdnDomainType, CdnPathInfoType],
     Tuple[CdnDomainType, Annotated[str, "In case of swagger/redoc has the same path"]],
 ]
+
+
+class CdnHostEnum(Enum):
+    jsdelivr: CdnHostInfoType = "https://cdn.jsdelivr.net/npm"
+    unpkg: CdnHostInfoType = "https://unpkg.com"
+    cdnjs: CdnHostInfoType = "https://cdnjs.cloudflare.com/ajax/libs", (
+        "/swagger-ui/{version}/",
+        OFFICIAL_REDOC,
+    )
+
+
+@dataclass
+class AssetUrl:
+    css: Annotated[str, "URL of swagger-ui.css"]
+    js: Annotated[str, "URL of swagger-ui-bundle.js"]
+    redoc: Annotated[str, "URL of redoc.standalone.js"]
+    favicon: Annotated[Optional[str], "URL of favicon.png/favicon.ico"] = None
 
 
 class HttpSpider:
@@ -66,22 +84,6 @@ class HttpSpider:
         return urls[0]
 
 
-class CdnHostEnum(Enum):
-    jsdelivr: CdnHostInfoType = "https://cdn.jsdelivr.net/npm"
-    unpkg: CdnHostInfoType = "https://unpkg.com"
-    cdnjs: CdnHostInfoType = "https://cdnjs.cloudflare.com/ajax/libs", (
-        "/swagger-ui/{version}/" "https://cdn.redoc.ly/redoc/latest/bundles/"
-    )
-
-
-@dataclass
-class AssetUrl:
-    css: Annotated[str, "URL of swagger-ui.css"]
-    js: Annotated[str, "URL of swagger-ui-bundle.js"]
-    redoc: Annotated[str, "URL of redoc.standalone.js"]
-    favicon: Annotated[Optional[str], "URL of favicon.png/favicon.ico"] = None
-
-
 class CdnHostBuilder:
     swagger_ui_version = "5.9.0"  # to be optimize: auto get version from fastapi
     swagger_files = {"css": "swagger-ui.css", "js": "swagger-ui-bundle.js"}
@@ -106,13 +108,22 @@ class CdnHostBuilder:
         return result[0]
 
     def run(self) -> AssetUrl:
-        static_builder = StaticBuilder(self.app, favicon_url=self.favicon_url)
-        if isinstance(self.docs_cdn_host, Path):
-            static_builder.static_root = self.docs_cdn_host
-        if urls := static_builder.find():
-            return urls
         if (favicon := self.favicon_url) is not None:
             favicon = self.mount_local_favicon(favicon)
+        static_builder = StaticBuilder(self.app, favicon_url=favicon)
+        if isinstance(cdn_host := self.docs_cdn_host, Path):
+            static_builder.static_root = self.docs_cdn_host
+        elif cdn_host is not None:
+            if isinstance(cdn_host, CdnHostEnum):
+                cdn_host = cdn_host.value
+            if isinstance(cdn_host, str):
+                return self.build_asset_url(cdn_host, favicon_url=favicon)
+            cdn_host, asset_path = cdn_host
+            if isinstance(asset_path, str):
+                asset_path = (asset_path, asset_path)
+            return self.build_asset_url(cdn_host, asset_path, favicon_url=favicon)
+        if urls := static_builder.find():
+            return urls
         return self.run_async(self.sniff_the_fastest, favicon)
 
     @staticmethod
@@ -135,15 +146,15 @@ class CdnHostBuilder:
         css_urls: List[str] = []
         they: List[tuple] = []
         for cdn_host in competitors:
-            host = getattr(cdn_host, "value", cdn_host)
-            path = DEFAULT_ASSET_PATH[0]
-            if isinstance(host, tuple):
-                they.append((host, path))
-                path = host[1][0]
-                host = host[0]
+            if isinstance(cdn_host, CdnHostEnum):
+                cdn_host = cdn_host.value
+            if isinstance(cdn_host, str):
+                host = cdn_host
+                asset_path: Union[str, CdnPathInfoType] = DEFAULT_ASSET_PATH
             else:
-                they.append((host, DEFAULT_ASSET_PATH))
-            path = path.format(version=cls.swagger_ui_version)
+                host, asset_path = cdn_host
+            they.append((host, asset_path))
+            path = asset_path[0].format(version=cls.swagger_ui_version)
             url = host + path + cls.swagger_files["css"]
             css_urls.append(url)
         return css_urls, they
@@ -153,14 +164,27 @@ class CdnHostBuilder:
         css_urls, they = cls.build_race_data(list(CdnHostEnum))
         fast_css_url = await HttpSpider.find_fastest_host(css_urls)
         fast_host, fast_asset_path = they[css_urls.index(fast_css_url)]
-        css = fast_css_url
-        swagger_ui_path = fast_asset_path[0].format(version=cls.swagger_ui_version)
-        js = fast_host + swagger_ui_path + cls.swagger_files["js"]
-        redoc_path = fast_asset_path[1]
-        if not redoc_path.startswith("http"):
-            redoc_path = fast_host + redoc_path
-        redoc = redoc_path + cls.redoc_file
         logger.info(f"Select cdn: {fast_host[0]} to serve swagger css/js")
+        return cls.build_asset_url(
+            fast_host, fast_asset_path, fast_css_url, favicon_url
+        )
+
+    @classmethod
+    def build_asset_url(
+        cls,
+        cdn_host: str,
+        asset_path: Tuple[str, str] = DEFAULT_ASSET_PATH,
+        css: Optional[str] = None,
+        favicon_url: Optional[str] = None,
+    ) -> AssetUrl:
+        swagger_ui_path = asset_path[0].format(version=cls.swagger_ui_version)
+        js = cdn_host + swagger_ui_path + cls.swagger_files["js"]
+        if css is None:
+            css = cdn_host + swagger_ui_path + cls.swagger_files["css"]
+        redoc_path = asset_path[1] or OFFICIAL_REDOC
+        if not redoc_path.startswith("http"):
+            redoc_path = cdn_host + redoc_path
+        redoc = redoc_path + cls.redoc_file
         return AssetUrl(css=css, js=js, redoc=redoc, favicon=favicon_url)
 
     def mount_local_favicon(self, favicon_url) -> Union[str, None]:
