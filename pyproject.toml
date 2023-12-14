@@ -41,3 +41,5 @@ check_untyped_defs = true
 branch = true
 parallel=true
 source = ["fastapi_cdn_host"]
+[tool.coverage.report]
+omit = ["tests/*"]

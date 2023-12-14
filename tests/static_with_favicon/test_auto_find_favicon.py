@@ -39,3 +39,5 @@ async def test_docs(client: AsyncClient):  # nosec
     text = response.text
     assert response.status_code == 200, text
     assert "/static/redoc" in text
+    response = await client.get("/app")
+    assert response.status_code == 200

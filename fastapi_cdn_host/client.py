@@ -94,6 +94,7 @@ class CdnHostBuilder:
 
     @staticmethod
     def run_async(async_func, *args) -> Any:
+        """Run async function in worker thread and get the result of it"""
         result = [None]
 
         async def runner():
@@ -110,13 +111,19 @@ class CdnHostBuilder:
             static_builder.static_root = self.docs_cdn_host
         if urls := static_builder.find():
             return urls
-        return self.run_async(self.sniff_the_fastest, self.favicon_url)
+        if (favicon := self.favicon_url) is not None:
+            favicon = self.mount_local_favicon(favicon)
+        return self.run_async(self.sniff_the_fastest, favicon)
 
     @staticmethod
     def fill_root_path(urls, root):
         if root:
             for attr in ("js", "css", "redoc", "favicon"):
-                if (v := getattr(urls, attr)) and not v.startswith(root):
+                if (
+                    (v := getattr(urls, attr))
+                    and v.startswith("/")
+                    and not v.startswith(root)
+                ):
                     setattr(urls, attr, root + v)
         return urls
 
@@ -155,6 +162,20 @@ class CdnHostBuilder:
         redoc = redoc_path + cls.redoc_file
         logger.info(f"Select cdn: {fast_host[0]} to serve swagger css/js")
         return AssetUrl(css=css, js=js, redoc=redoc, favicon=favicon_url)
+
+    def mount_local_favicon(self, favicon_url) -> Union[str, None]:
+        if favicon_url is not None and favicon_url.startswith("/"):
+            filename = favicon_url.lstrip("/")
+            favicon_file = Path(filename)
+            if favicon_file.exists() and favicon_file.parent.is_dir():
+                static_root = favicon_file.parents[-2]
+                uri_path = StaticBuilder.auto_mount_static(
+                    self.app, static_root, "/" + static_root.name
+                )
+                favicon_url = StaticBuilder.file_to_uri(
+                    favicon_file, static_root, uri_path
+                )
+        return favicon_url
 
 
 class DocsBuilder:
@@ -214,14 +235,16 @@ class StaticBuilder:
         self.favicon_url = favicon_url
 
     def find(self):
-        return self.local_file(self.app, self.static_root, self.favicon_url)
+        return self.detect_local_file(self.app, self.static_root, self.favicon_url)
 
     def _maybe(
         self, static_root: Path, mount=None, app=None, favicon=None
     ) -> Optional[AssetUrl]:
         if gs := list(static_root.rglob("swagger-ui*.css")):
             logger.info(f"Using local files in {static_root} to serve docs assets.")
-            return self._next_it(gs, mount, app, static_root, favicon)
+            return self._generate_asset_urls_from_local_files(
+                gs, mount, app, static_root, favicon
+            )
         return None
 
     @staticmethod
@@ -234,16 +257,25 @@ class StaticBuilder:
     def file_to_uri(p: Path, static_root: Path, uri_path: str) -> str:
         return uri_path.rstrip("/") + "/" + p.relative_to(static_root).as_posix()
 
-    def _next_it(
+    @staticmethod
+    def auto_mount_static(
+        app: FastAPI, static_root: Union[Path, str], uri_path=None
+    ) -> str:
+        if uri_path is None:
+            uri_path = "/static"
+        if all(getattr(r, "path", "") != uri_path for r in app.routes):
+            name = uri_path.strip("/")
+            app.mount(uri_path, StaticFiles(directory=static_root), name=name)
+            logger.info(f"Auto mount static files to {uri_path} from {static_root}")
+        return uri_path
+
+    def _generate_asset_urls_from_local_files(
         self, gs, mount=None, app=None, static_root=None, favicon=None
     ) -> AssetUrl:
         if mount:
             uri_path = mount.path
         else:
-            uri_path = "/static"
-            if all(r.path != uri_path for r in app.routes):
-                app.mount(uri_path, StaticFiles(directory=static_root), name="static")
-                logger.info(f"Auto mount static files to {uri_path} from {static_root}")
+            uri_path = self.auto_mount_static(app, static_root)
         css_file = self.get_latest_one(gs)
         if _js := list(static_root.rglob("swagger-ui*.js")):
             js_file = self.get_latest_one(_js)
@@ -269,7 +301,7 @@ class StaticBuilder:
                 favicon = self.file_to_uri(favicon_file, static_root, uri_path)
         return AssetUrl(css=css, js=js, redoc=redoc, favicon=favicon)
 
-    def local_file(
+    def detect_local_file(
         self,
         app,
         static_root: Union[Path, None] = None,

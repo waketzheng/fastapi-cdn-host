@@ -21,22 +21,16 @@ async def client():
 
 @pytest.mark.anyio
 async def test_docs(client: AsyncClient):  # nosec
-    swagger_ui = CdnHostBuilder.swagger_files
-    js_url = "/static/" + swagger_ui["js"]
-    css_url = "/static/" + swagger_ui["css"]
-    response = await client.get(css_url)
-    assert response.status_code == 200, f"{response.url=};{response.text=}"
-    response = await client.get(js_url)
-    assert response.status_code == 200, response.text
     response = await client.get("/docs")
     text = response.text
     assert response.status_code == 200, text
     assert default_favicon_url in text
-    assert js_url in text
-    assert css_url in text
-    response = await client.get("/redoc")
-    text = response.text
-    assert response.status_code == 200, text
-    assert "/static/redoc" in text
+    urls = await CdnHostBuilder.sniff_the_fastest()
+    assert f'"{urls.js}"' in text
+    assert f'"{urls.css}"' in text
+    response2 = await client.get("/redoc")
+    text2 = response2.text
+    assert response2.status_code == 200, text2
+    assert f'"{urls.redoc}"' in text2
     response = await client.get("/app")
     assert response.status_code == 200
