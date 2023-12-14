@@ -168,7 +168,7 @@ class CdnHostBuilder:
             filename = favicon_url.lstrip("/")
             favicon_file = Path(filename)
             if favicon_file.exists() and favicon_file.parent.is_dir():
-                static_root = favicon_file.parents[-2]
+                static_root = Path(filename.split("/")[0])
                 uri_path = StaticBuilder.auto_mount_static(
                     self.app, static_root, "/" + static_root.name
                 )
