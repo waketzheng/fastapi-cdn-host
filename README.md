@@ -35,7 +35,7 @@ monkey_patch_for_docs_ui(app)  # Will use `unpkg.com` to replace the `cdn.jsdeli
 # Will auto mount static, then use `/static/swagger-ui-bundle.js` and `/static/swagger-ui.css` as docs assets
 monkey_patch_for_docs_ui(app)
 ```
-This line is equal to the following code:
+This line is almost equal to the following code:
 https://fastapi.tiangolo.com/how-to/custom-docs-ui-assets/?h=static#self-hosting-javascript-and-css-for-docs
 ```py
 from fastapi import FastAPI

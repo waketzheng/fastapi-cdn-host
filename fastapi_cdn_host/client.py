@@ -336,11 +336,12 @@ def monkey_patch_for_docs_ui(
         logger.info("API docs not activated, skip monkey patch.")
         return
     urls = CdnHostBuilder(app, docs_cdn_host, favicon_url).run()
+    route_index: Dict[str, int] = {
+        getattr(route, "path", ""): index for index, route in enumerate(app.routes)
+    }
     if docs_url:
-        for i, route in enumerate(app.routes):
-            if getattr(route, "path", "") == docs_url:
-                DocsBuilder(i).update_docs_entrypoint(urls, app, docs_url)
+        if (index := route_index.get(docs_url)) is not None:
+            DocsBuilder(index).update_docs_entrypoint(urls, app, docs_url)
     if redoc_url:
-        for i, route in enumerate(app.routes):
-            if getattr(route, "path", "") == redoc_url:
-                DocsBuilder(i).update_redoc_entrypoint(urls, app, redoc_url)
+        if (index := route_index.get(redoc_url)) is not None:
+            DocsBuilder(index).update_redoc_entrypoint(urls, app, redoc_url)
