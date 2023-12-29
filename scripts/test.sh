@@ -18,6 +18,7 @@ cd ../private_cdn && coverage run -m pytest test_*.py
 cd ../cdn_with_default_asset_path && coverage run -m pytest test_*.py
 cd ../explicit_cdn_host && coverage run -m pytest test_*.py
 cd ../simple_asset_path && coverage run -m pytest test_*.py
+cd ../extend_choices && coverage run -m pytest test_*.py
 
 cd ../.. && coverage combine tests/*/.coverage
 coverage report -m

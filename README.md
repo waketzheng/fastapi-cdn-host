@@ -80,7 +80,7 @@ async def redoc_html():
 #   http://my-cdn.com/swagger-ui@latest/swagger-ui-bundle.js
 #   http://my-cdn.com/swagger-ui@latest/swagger-ui.css
 # render /redoc with: `http://my-cdn.com/redoc/next/redoc.standalone.js`
-monkey_patch_for_docs_ui(app, cdn_host=('http://my-cdn.com', ('/swagger-ui@latest/', '/redoc/next/')))
+monkey_patch_for_docs_ui(app, docs_cdn_host=('http://my-cdn.com', ('/swagger-ui@latest/', '/redoc/next/')))
 ```
 
 ## License

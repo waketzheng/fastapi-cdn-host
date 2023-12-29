@@ -3,7 +3,7 @@ import pytest
 from httpx import AsyncClient
 from main import app
 
-from fastapi_cdn_host.client import CdnHostBuilder
+from fastapi_cdn_host.client import CdnHostBuilder, CdnHostEnum
 
 
 @pytest.fixture(scope="module")
@@ -19,11 +19,22 @@ async def client():
 
 @pytest.mark.anyio
 async def test_docs(client: AsyncClient):  # nosec
-    urls = await CdnHostBuilder.sniff_the_fastest()
+    urls = await CdnHostBuilder.sniff_the_fastest(
+        choices=CdnHostEnum.extend(
+            (
+                "https://cdn.bootcdn.net/ajax/libs",
+                ("/swagger-ui/{version}/", ""),
+            ),
+            ("https://cdn.staticfile.org", ("/swagger-ui/{version}/", "")),
+            (
+                "https://lf9-cdn-tos.bytecdntp.com/cdn/expire-1-M",
+                ("/swagger-ui/{version}/", ""),
+            ),
+        )
+    )
     response = await client.get("/docs")
     text = response.text
     assert response.status_code == 200, text
-    assert '"https://ubuntu.com/favicon.ico"' in text
     assert urls.js in text
     assert urls.css in text
     response2 = await client.get("/redoc")

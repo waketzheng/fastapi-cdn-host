@@ -22,10 +22,11 @@ CdnPathInfoType = Tuple[
     Annotated[str, "redoc path or url info(must startswith '/')"],
 ]
 CdnDomainType = Annotated[str, "Host for swagger-ui/redoc"]
+StrictCdnHostInfoType = Tuple[CdnDomainType, CdnPathInfoType]
 CdnHostInfoType = Union[
     Annotated[CdnDomainType, f"Will use DEFAULT_ASSET_PATH: {DEFAULT_ASSET_PATH}"],
-    Tuple[CdnDomainType, CdnPathInfoType],
     Tuple[CdnDomainType, Annotated[str, "In case of swagger/redoc has the same path"]],
+    StrictCdnHostInfoType,
 ]
 
 
@@ -36,6 +37,10 @@ class CdnHostEnum(Enum):
         "/swagger-ui/{version}/",
         OFFICIAL_REDOC,
     )
+
+    @classmethod
+    def extend(cls, *host: StrictCdnHostInfoType) -> List[CdnHostInfoType]:
+        return [*host, *cls]
 
 
 @dataclass
@@ -118,6 +123,8 @@ class CdnHostBuilder:
                 cdn_host = cdn_host.value
             if isinstance(cdn_host, str):
                 return self.build_asset_url(cdn_host, favicon_url=favicon)
+            if isinstance(cdn_host, list) and isinstance(cdn_host[0], tuple):
+                return self.run_async(self.sniff_the_fastest, favicon, cdn_host)
             cdn_host, asset_path = cdn_host
             if isinstance(asset_path, str):
                 asset_path = (asset_path, asset_path)
@@ -160,8 +167,10 @@ class CdnHostBuilder:
         return css_urls, they
 
     @classmethod
-    async def sniff_the_fastest(cls, favicon_url=None) -> AssetUrl:
-        css_urls, they = cls.build_race_data(list(CdnHostEnum))
+    async def sniff_the_fastest(
+        cls, favicon_url=None, choices=list(CdnHostEnum)
+    ) -> AssetUrl:
+        css_urls, they = cls.build_race_data(choices)
         fast_css_url = await HttpSpider.find_fastest_host(css_urls)
         fast_host, fast_asset_path = they[css_urls.index(fast_css_url)]
         logger.info(f"Select cdn: {fast_host[0]} to serve swagger css/js")
@@ -345,7 +354,9 @@ class StaticBuilder:
 
 def monkey_patch_for_docs_ui(
     app: FastAPI,
-    docs_cdn_host: Union[CdnHostEnum, CdnHostInfoType, Path, None] = None,
+    docs_cdn_host: Union[
+        CdnHostEnum, List[CdnHostInfoType], CdnHostInfoType, Path, None
+    ] = None,
     favicon_url: Union[str, None] = None,
 ) -> None:
     """Use local static files or the faster CDN host for docs asset(swagger-ui)
