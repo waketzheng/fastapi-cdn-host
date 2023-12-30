@@ -3,6 +3,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
 
 from fastapi_cdn_host import CdnHostEnum, monkey_patch_for_docs_ui
+from fastapi_cdn_host.client import NORMAL_ASSET_PATH
 
 app = FastAPI(title="FastAPI CDN host test")
 
@@ -20,14 +21,6 @@ async def get_app(request: Request) -> dict:
 monkey_patch_for_docs_ui(
     app,
     docs_cdn_host=CdnHostEnum.extend(
-        (
-            "https://cdn.bootcdn.net/ajax/libs",
-            ("/swagger-ui/{version}/", ""),
-        ),  # BootCDN
-        ("https://cdn.staticfile.org", ("/swagger-ui/{version}/", "")),  # 七牛云
-        (
-            "https://lf9-cdn-tos.bytecdntp.com/cdn/expire-1-M",
-            ("/swagger-ui/{version}/", ""),
-        ),  # 字节
+        ("https://lf9-cdn-tos.bytecdntp.com/cdn/expire-1-M", NORMAL_ASSET_PATH)  # 字节
     ),
 )

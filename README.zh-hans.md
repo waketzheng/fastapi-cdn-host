@@ -40,11 +40,10 @@ monkey_patch_for_docs_ui(app)
 - 参考：https://github.com/lecepin/blog/blob/main/%E5%9B%BD%E5%86%85%E9%AB%98%E9%80%9F%E5%89%8D%E7%AB%AF%20Unpkg%20CDN%20%E6%9B%BF%E4%BB%A3%E6%96%B9%E6%A1%88.md
 ```py
 from fastapi_cdn_host import CdnHostEnum
+
 monkey_patch_for_docs_ui(
     app,
     docs_cdn_host=CdnHostEnum.extend(
-        ('https://cdn.bootcdn.net/ajax/libs', ('/swagger-ui/{version}/', '')),  # BootCDN
-        ('https://cdn.staticfile.org', ('/swagger-ui/{version}/', '')),  # 七牛云
         ('https://lf9-cdn-tos.bytecdntp.com/cdn/expire-1-M', ('/swagger-ui/{version}/', '')),  # 字节
     )
 )

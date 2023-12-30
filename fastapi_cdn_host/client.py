@@ -15,8 +15,9 @@ from typing_extensions import Annotated  # type: ignore[attr-defined]
 
 logger = logging.getLogger("fastapi-cdn-host")
 
-DEFAULT_ASSET_PATH = ("/swagger-ui-dist@{version}/", "/redoc@next/bundles/")
 OFFICIAL_REDOC = "https://cdn.redoc.ly/redoc/latest/bundles/"
+DEFAULT_ASSET_PATH = ("/swagger-ui-dist@{version}/", "/redoc@next/bundles/")
+NORMAL_ASSET_PATH = ("/swagger-ui/{version}/", OFFICIAL_REDOC)
 CdnPathInfoType = Tuple[
     Annotated[str, "swagger-ui module path info(must startswith '/')"],
     Annotated[str, "redoc path or url info(must startswith '/')"],
@@ -33,10 +34,9 @@ CdnHostInfoType = Union[
 class CdnHostEnum(Enum):
     jsdelivr: CdnHostInfoType = "https://cdn.jsdelivr.net/npm"
     unpkg: CdnHostInfoType = "https://unpkg.com"
-    cdnjs: CdnHostInfoType = "https://cdnjs.cloudflare.com/ajax/libs", (
-        "/swagger-ui/{version}/",
-        OFFICIAL_REDOC,
-    )
+    cdnjs: CdnHostInfoType = "https://cdnjs.cloudflare.com/ajax/libs", NORMAL_ASSET_PATH
+    bootcdn: CdnHostInfoType = "https://cdn.bootcdn.net/ajax/libs", NORMAL_ASSET_PATH
+    qiniu: CdnHostInfoType = "https://cdn.staticfile.org", NORMAL_ASSET_PATH
 
     @classmethod
     def extend(cls, *host: StrictCdnHostInfoType) -> List[CdnHostInfoType]:
