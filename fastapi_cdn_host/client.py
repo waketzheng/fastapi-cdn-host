@@ -2,7 +2,7 @@ import logging
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import anyio
 import httpx
@@ -218,8 +218,12 @@ class DocsBuilder:
     def update_entrypoint(self, func, app: FastAPI, url: str) -> None:
         app.routes[self.index] = APIRoute(url, func, include_in_schema=False)
 
-    def update_docs_entrypoint(self, urls: AssetUrl, app: FastAPI, url: str) -> None:
+    def update_docs_entrypoint(
+        self, urls: AssetUrl, app: FastAPI, url: str, lock=None
+    ) -> None:
         async def swagger_ui_html(req: Request) -> HTMLResponse:
+            if lock is not None:
+                lock(req)
             root_path = req.scope.get("root_path", "").rstrip("/")
             asset_urls = CdnHostBuilder.fill_root_path(urls, root_path)
             openapi_url = root_path + app.openapi_url
@@ -242,8 +246,12 @@ class DocsBuilder:
 
         self.update_entrypoint(swagger_ui_html, app, url)
 
-    def update_redoc_entrypoint(self, urls: AssetUrl, app: FastAPI, url: str) -> None:
+    def update_redoc_entrypoint(
+        self, urls: AssetUrl, app: FastAPI, url: str, lock=None
+    ) -> None:
         async def redoc_html(req: Request) -> HTMLResponse:
+            if lock is not None:
+                lock(req)
             root_path = req.scope.get("root_path", "").rstrip("/")
             asset_urls = CdnHostBuilder.fill_root_path(urls, root_path)
             openapi_url = root_path + app.openapi_url
@@ -358,6 +366,7 @@ def monkey_patch_for_docs_ui(
         CdnHostEnum, List[CdnHostInfoType], CdnHostInfoType, Path, None
     ] = None,
     favicon_url: Union[str, None] = None,
+    lock: Union[Callable, None] = None,
 ) -> None:
     """Use local static files or the faster CDN host for docs asset(swagger-ui)
 
@@ -376,7 +385,7 @@ def monkey_patch_for_docs_ui(
     }
     if docs_url:
         if (index := route_index.get(docs_url)) is not None:
-            DocsBuilder(index).update_docs_entrypoint(urls, app, docs_url)
+            DocsBuilder(index).update_docs_entrypoint(urls, app, docs_url, lock=lock)
     if redoc_url:
         if (index := route_index.get(redoc_url)) is not None:
-            DocsBuilder(index).update_redoc_entrypoint(urls, app, redoc_url)
+            DocsBuilder(index).update_redoc_entrypoint(urls, app, redoc_url, lock=lock)
