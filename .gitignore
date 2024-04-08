@@ -8,6 +8,7 @@ htmlcov
 dist
 site
 .coverage
+.coverage.*.local.*
 coverage.xml
 .netlify
 test.db

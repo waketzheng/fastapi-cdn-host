@@ -9,6 +9,7 @@ from fastapi_cdn_host import monkey_patch_for_docs_ui
 app = FastAPI(title="FastAPI CDN host test")
 STATIC_ROOT = Path(__file__).parent.parent / "static_auto" / "static"
 app.mount("/static", StaticFiles(directory=STATIC_ROOT), name="static")
+app.mount("/media", StaticFiles(directory=STATIC_ROOT), name="media")
 
 
 @app.get("/", include_in_schema=False)

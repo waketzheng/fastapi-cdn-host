@@ -19,7 +19,7 @@ black = "*"
 ruff = "*"
 mypy = "*"
 pytest = "*"
-bandit = "^1.7.5"
+bandit = "^1.7.8"
 
 [build-system]
 requires = ["poetry-core"]
