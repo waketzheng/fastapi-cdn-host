@@ -21,6 +21,10 @@ async def get_app(request: Request) -> dict:
 monkey_patch_for_docs_ui(
     app,
     docs_cdn_host=CdnHostEnum.extend(
-        ("https://lf9-cdn-tos.bytecdntp.com/cdn/expire-1-M", NORMAL_ASSET_PATH)  # 字节
+        (
+            "https://raw.githubusercontent.com/swagger-api/swagger-ui",
+            ("/v{version}/dist/", ""),
+        ),
+        ("https://lf9-cdn-tos.bytecdntp.com/cdn/expire-1-M", NORMAL_ASSET_PATH),
     ),
 )
