@@ -36,12 +36,12 @@ jobs:
       - name: Install requirements
         run: |
           poetry install
-          poetry run pip install isort black ruff mypy bandit coveralls
+          poetry run pip install coveralls
       - name: Check code style and Type Hint
         run: |
           poetry run isort --check-only --src=fastapi_cdn_host .
           poetry run black --check --fast .
-          poetry run ruff .
+          poetry run ruff check .
           poetry run mypy .
           poetry run bandit -r fastapi_cdn_host
       - name: test

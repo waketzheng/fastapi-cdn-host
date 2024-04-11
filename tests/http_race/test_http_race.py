@@ -2,12 +2,18 @@
 import time
 
 import pytest
-from asyncur import timeit
 from httpx import AsyncClient
 from main import app
 from utils import TestClient, UvicornServer
 
 from fastapi_cdn_host.client import HttpSpider
+
+try:
+    from asyncur import timeit
+except ImportError:
+
+    def timeit(f):  # type:ignore
+        return f
 
 
 @pytest.fixture(scope="module")
