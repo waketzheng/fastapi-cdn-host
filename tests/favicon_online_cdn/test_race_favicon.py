@@ -35,6 +35,9 @@ async def test_docs(client: AsyncClient):  # nosec
     response = await client.get("/docs")
     text = response.text
     assert response.status_code == 200, text
+    response2 = await client.get("/redoc")
+    text2 = response2.text
+    assert response2.status_code == 200, text2
     assert '"https://ubuntu.com/favicon.ico"' in text
     if urls.js not in text:
         # Sometimes there are several cdn hosts that have good response speed.
@@ -46,9 +49,6 @@ async def test_docs(client: AsyncClient):  # nosec
     else:
         assert urls.js in text
         assert urls.css in text
-    response2 = await client.get("/redoc")
-    text2 = response2.text
-    assert response2.status_code == 200, text2
-    assert urls.redoc in text2
+        assert urls.redoc in text2
     response = await client.get("/app")
     assert response.status_code == 200
