@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "fastapi-cdn-host"
-version = "0.4.0"
+version = "0.4.1"
 description = ""
 authors = ["Waket Zheng <waketzheng@gmail.com>"]
 readme = "README.md"
@@ -13,6 +13,7 @@ httpx = {version = ">=0.23"}
 
 [tool.poetry.group.dev.dependencies]
 fast-tort-cli = {extras = ["all"], version="*", python=">=3.11"}
+asyncur = {version=">=0.4.2", python=">=3.11"}
 uvicorn = {extras = ["standard"], version = "*"}
 isort = "*"
 black = "*"
@@ -34,7 +35,7 @@ ignore_missing_imports = true
 explicit_package_bases = true
 check_untyped_defs = true
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "test_*.py" = ["E501"]
 
 [tool.coverage.run]

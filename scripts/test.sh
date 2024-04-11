@@ -10,7 +10,7 @@ directories=`python -c 'from pathlib import Path;ds=[p.name for p in Path("tests
 cd tests/online_cdn
 for folder in $directories
 do
-    cd ../$folder && coverage run -m pytest test_*.py
+    cd ../$folder && coverage run -m pytest -s test_*.py
 done
 
 cd ../.. && coverage combine tests/*/.coverage

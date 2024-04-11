@@ -1,9 +1,9 @@
 # mypy: no-disallow-untyped-decorators
 import pytest
-from httpx import AsyncClient
+from httpx import ASGITransport, AsyncClient
 from main import app
 
-from fastapi_cdn_host.client import CdnHostBuilder
+from fastapi_cdn_host.client import CdnHostBuilder, CdnHostEnum, HttpSpider
 
 default_favicon_url = "https://fastapi.tiangolo.com/img/favicon.png"
 
@@ -15,7 +15,9 @@ def anyio_backend():
 
 @pytest.fixture(scope="module")
 async def client():
-    async with AsyncClient(app=app, base_url="http://test") as c:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as c:
         yield c
 
 
@@ -27,8 +29,16 @@ async def test_docs(client: AsyncClient):  # nosec
     assert response.status_code == 200, text
     assert default_favicon_url not in text
     assert '"/static/favicon.ico"' in text
-    assert f'"{urls.js}"' in text
-    assert f'"{urls.css}"' in text
+    if urls.js not in text:
+        # Sometimes there are several cdn hosts that have good response speed.
+        url_list = await HttpSpider.get_fast_hosts(
+            CdnHostBuilder.build_race_data(list(CdnHostEnum))[0]
+        )
+        assert urls.css in url_list
+        assert any(i in text for i in url_list)
+    else:
+        assert f'"{urls.js}"' in text
+        assert f'"{urls.css}"' in text
     response2 = await client.get("/redoc")
     text2 = response2.text
     assert response2.status_code == 200, text2

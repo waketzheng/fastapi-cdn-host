@@ -1,12 +1,14 @@
 import logging
+import re
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
 
 import anyio
 import httpx
 from fastapi import FastAPI, Request
+from fastapi.datastructures import URL
 from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
 from fastapi.responses import HTMLResponse
 from fastapi.routing import APIRoute, Mount
@@ -31,6 +33,60 @@ CdnHostInfoType = Union[
 ]
 
 
+class CdnHostItem:
+    """For cdn host url parse
+
+    Usage::
+        >>> CdnHostItem('https://raw.githubusercontent.com/swagger-api/swagger-ui/v5.14.0/dist/swagger-ui.css').export()
+        ('https://raw.githubusercontent.com/swagger-api/swagger-ui', ("/v{version}/dist/", ""))
+    """
+
+    def __init__(self, swagger_ui: str, redoc: Union[str, None] = "") -> None:
+        self.swagger_ui = swagger_ui
+        self.redoc = redoc
+
+    @staticmethod
+    def remove_filename(url: str) -> str:
+        """Remove last part of url if '.' in it
+
+        Usage::
+            >>> remove_filename('http://localhost:8000/a/b/c.js')
+            'http://localhost:8000/a/b/'
+            >>> remove_filename('http://localhost:8000/a/b')
+            'http://localhost:8000/a/b/'
+        """
+        sep = "://"
+        ps = url.split(sep)
+        path = ps[-1]
+        if not path.endswith("/"):
+            parts = path.split("/")
+            if "." in parts[-1]:
+                parts[-1] = ""
+            else:
+                parts.append("")
+            ps[-1] = "/".join(parts)
+        return sep.join(ps)
+
+    def export(self) -> StrictCdnHostInfoType:
+        url = URL(self.remove_filename(self.swagger_ui))
+        if not (scheme := url.scheme) or not (hostname := url.hostname):
+            raise ValueError(f"Invalid ({url!r}) -- missing scheme or hostname")
+        parts = url.path.split("/")
+        for index, value in enumerate(parts):
+            if re.match(r"swagger-ui\b", value):
+                break
+        host = cast(str, scheme) + "://" + cast(str, hostname) + "/".join(parts[:index])
+        swagger_path = re.sub(
+            r"\d+\.\d+\.\d+", "{version}", "/".join([""] + parts[index:])
+        )
+        if self.redoc is None:
+            redoc_path = DEFAULT_ASSET_PATH[-1]
+        else:
+            if (redoc_path := self.redoc) and not redoc_path.endswith("/"):
+                redoc_path = self.remove_filename(redoc_path)
+        return (host, (swagger_path, redoc_path))
+
+
 class CdnHostEnum(Enum):
     jsdelivr: CdnHostInfoType = "https://cdn.jsdelivr.net/npm"
     unpkg: CdnHostInfoType = "https://unpkg.com"
@@ -39,8 +95,17 @@ class CdnHostEnum(Enum):
     qiniu: CdnHostInfoType = "https://cdn.staticfile.org", NORMAL_ASSET_PATH
 
     @classmethod
-    def extend(cls, *host: StrictCdnHostInfoType) -> List[CdnHostInfoType]:
-        return [*host, *cls]
+    def extend(
+        cls, *host: Union[StrictCdnHostInfoType, CdnHostItem]
+    ) -> List[CdnHostInfoType]:
+        host_infos: List[StrictCdnHostInfoType] = []
+        for i in host:
+            if isinstance(i, CdnHostItem):
+                j = i.export()
+                host_infos.append(j)
+            else:
+                host_infos.append(i)
+        return [*host_infos, *cls]
 
 
 @dataclass
@@ -74,8 +139,8 @@ class HttpSpider:
         cls, urls: List[str], total_seconds=5, loop_interval=0.1
     ) -> str:
         results = [None] * len(urls)
-        async with anyio.create_task_group() as tg:
-            async with httpx.AsyncClient(timeout=total_seconds) as client:
+        async with httpx.AsyncClient(timeout=total_seconds) as client:
+            async with anyio.create_task_group() as tg:
                 for i, url in enumerate(urls):
                     tg.start_soon(cls.fetch, client, url, results, i)
                 for _ in range(int(total_seconds / loop_interval) + 1):
@@ -87,6 +152,22 @@ class HttpSpider:
             if res is not None:
                 return url
         return urls[0]
+
+    @classmethod
+    async def get_fast_hosts(
+        cls, urls: List[str], wait_seconds=0.8, total_seconds=5
+    ) -> List[str]:
+        results = [None] * len(urls)
+        async with httpx.AsyncClient(timeout=total_seconds) as client:
+            async with anyio.create_task_group() as tg:
+                for i, url in enumerate(urls):
+                    tg.start_soon(cls.fetch, client, url, results, i)
+                for _ in range(int(total_seconds / wait_seconds)):
+                    await anyio.sleep(wait_seconds)
+                    if any(r is not None for r in results):
+                        tg.cancel_scope.cancel()
+                        break
+        return [url for url, res in zip(urls, results) if res is not None]
 
 
 class CdnHostBuilder:

@@ -32,19 +32,20 @@ monkey_patch_for_docs_ui(app)
 
 使用`monkey_patch_for_docs_ui(app)`启用插件后，uvicorn(或gunicorn等)启动服务时，
 会先查找本地文件夹里是否有swagger-ui.css，有的话自动挂载到app并改写/docs的依赖为本地文件。
-没有的话，使用协程并发对比https://cdn.jsdelivr.net、https://unpkg.com、https://cdnjs.cloudflare.com
-三个CDN的响应速度，然后自动采用速度最快的那个。
+没有的话，使用协程并发对比https://cdn.jsdelivr.net、https://unpkg.com、https://cdnjs.cloudflare.com、https://cdn.bootcdn.net
+等几个CDN的响应速度，然后自动采用速度最快的那个。
 
 ## 加入其他CDN作为备选
 
 - 参考：https://github.com/lecepin/blog/blob/main/%E5%9B%BD%E5%86%85%E9%AB%98%E9%80%9F%E5%89%8D%E7%AB%AF%20Unpkg%20CDN%20%E6%9B%BF%E4%BB%A3%E6%96%B9%E6%A1%88.md
 ```py
-from fastapi_cdn_host import CdnHostEnum
+from fastapi_cdn_host import CdnHostEnum, CdnHostItem
 
 monkey_patch_for_docs_ui(
     app,
     docs_cdn_host=CdnHostEnum.extend(
         ('https://lf9-cdn-tos.bytecdntp.com/cdn/expire-1-M', ('/swagger-ui/{version}/', '')),  # 字节
+        CdnHostItem('https://raw.githubusercontent.com/swagger-api/swagger-ui/v5.14.0/dist/swagger-ui.css'),  # github
     )
 )
 ```

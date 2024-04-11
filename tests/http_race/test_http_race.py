@@ -2,9 +2,10 @@
 import time
 
 import pytest
+from asyncur import timeit
 from httpx import AsyncClient
 from main import app
-from utils import UvicornServer
+from utils import TestClient, UvicornServer
 
 from fastapi_cdn_host.client import HttpSpider
 
@@ -16,7 +17,7 @@ def anyio_backend():
 
 @pytest.fixture(scope="module")
 async def client():
-    async with AsyncClient(app=app, base_url="http://test") as c:
+    async with TestClient(app) as c:
         yield c
 
 
@@ -45,7 +46,7 @@ async def test_find():
     host = "http://127.0.0.1:8000/"
     with UvicornServer().run_in_thread():
         urls = [host + path.format(seconds) for seconds, path in zip(waits, paths)]
-        fastest = await HttpSpider.find_fastest_host(urls, total_seconds=0.1)
+        fastest = await timeit(HttpSpider.find_fastest_host)(urls, total_seconds=0.1)
         assert fastest == urls[0]
-        fastest = await HttpSpider.find_fastest_host(urls, loop_interval=0.1)
+        fastest = await timeit(HttpSpider.find_fastest_host)(urls, loop_interval=0.1)
         assert fastest == urls[waits.index(min(waits))]

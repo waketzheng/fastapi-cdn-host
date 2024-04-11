@@ -1,32 +1,14 @@
 # mypy: no-disallow-untyped-decorators
 import logging
-from contextlib import contextmanager, redirect_stdout
-from io import StringIO
 
 import pytest
 from fastapi import FastAPI
-from httpx import AsyncClient
+from httpx import ASGITransport, AsyncClient
 from main import app
 
 from fastapi_cdn_host.client import StaticBuilder, monkey_patch_for_docs_ui
 
 default_favicon_url = "https://fastapi.tiangolo.com/img/favicon.png"
-
-
-@contextmanager
-def capture_stdout():
-    """Redirect sys.stdout to a new StringIO
-
-    Example::
-    ```py
-        with capture_stdout() as stream:
-            GitTag(message="", dry=True).run()
-        assert "git tag -a" in stream.getvalue()
-    ```
-    """
-    stream = StringIO()
-    with redirect_stdout(stream):
-        yield stream
 
 
 @pytest.fixture(scope="module")
@@ -36,7 +18,9 @@ def anyio_backend():
 
 @pytest.fixture(scope="module")
 async def client():
-    async with AsyncClient(app=app, base_url="http://test") as c:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as c:
         yield c
 
 

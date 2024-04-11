@@ -1,6 +1,6 @@
 # mypy: no-disallow-untyped-decorators
 import pytest
-from httpx import AsyncClient
+from httpx import ASGITransport, AsyncClient
 from main import app
 
 from fastapi_cdn_host.client import CdnHostBuilder
@@ -15,7 +15,9 @@ def anyio_backend():
 
 @pytest.fixture(scope="module")
 async def client():
-    async with AsyncClient(app=app, base_url="http://test") as c:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as c:
         yield c
 
 

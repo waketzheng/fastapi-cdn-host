@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 from config import MY_CDN, PORT
-from httpx import AsyncClient
+from httpx import ASGITransport, AsyncClient
 from main import app
 
 try:
@@ -22,7 +22,9 @@ def anyio_backend():
 
 @pytest.fixture(scope="module")
 async def client():
-    async with AsyncClient(app=app, base_url="http://test") as c:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as c:
         yield c
 
 
