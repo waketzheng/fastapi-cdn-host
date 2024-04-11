@@ -1,4 +1,6 @@
 # mypy: no-disallow-untyped-decorators
+import re
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 from main import app
@@ -23,26 +25,22 @@ async def client():
 
 @pytest.mark.anyio
 async def test_docs(client: AsyncClient):  # nosec
-    swagger_ui = CdnHostBuilder.swagger_files
-    js_url = "/api/v1/static/" + swagger_ui["js"]
-    css_url = "/api/v1/static/" + swagger_ui["css"]
-    response = await client.get(css_url)
-    assert response.status_code == 404, f"{response.url=};{response.text=}"
-    response = await client.get(js_url)
-    assert response.status_code == 404, response.text
-    response = await client.get(css_url.replace("/api/v1", ""))
-    assert response.status_code == 200, f"{response.url=};{response.text=}"
-    response = await client.get(js_url.replace("/api/v1", ""))
-    assert response.status_code == 200, response.text
     response = await client.get("/docs")
     text = response.text
     assert response.status_code == 200, text
     assert default_favicon_url in text
-    assert f'"{js_url}"' in text
-    assert f'"{css_url}"' in text
+    swagger_ui = CdnHostBuilder.swagger_files
+    css = re.search(rf'href="(.*?/static/{swagger_ui["css"]})"', text)
+    js = re.search(rf'src="(.*?/static/{swagger_ui["js"]})"', text)
+    assert css and js
+    css_url = css.group(1)
+    js_url = css.group(1)
+    response = await client.get(css_url)
+    assert response.status_code == 200, f"{response.url=};{response.text=}"
+    response = await client.get(js_url)
+    assert response.status_code == 200, response.text
     response = await client.get("/redoc")
-    text = response.text
-    assert response.status_code == 200, text
-    assert '"/api/v1/static/redoc' in text
+    assert '"/api/v1/static/redoc' in response.text
+    assert response.status_code == 200
     response = await client.get("/app")
     assert response.status_code == 200

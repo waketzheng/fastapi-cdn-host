@@ -21,6 +21,8 @@ ruff = "*"
 mypy = "*"
 pytest = "*"
 bandit = "^1.7.8"
+starlette = "*"
+pydantic = "*"
 
 [build-system]
 requires = ["poetry-core"]
