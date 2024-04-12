@@ -13,5 +13,8 @@ do
     cd ../$folder && coverage run -m pytest -s test_*.py
 done
 
-cd ../.. && coverage combine tests/*/.coverage
+cd ../../examples
+coverage run -m pytest -s test_*.py
+cd ..
+coverage combine tests/*/.coverage examples/.coverage
 coverage report -m

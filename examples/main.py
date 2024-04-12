@@ -9,6 +9,7 @@ from fastapi.responses import RedirectResponse
 from fastapi_cdn_host import monkey_patch_for_docs_ui
 
 app = FastAPI(title="HTTP redirect center")
+monkey_patch_for_docs_ui(app)
 
 
 @app.get("/", include_in_schema=False)
@@ -25,13 +26,10 @@ async def get_app(request: Request) -> dict:
 async def only_for_test(request: Request) -> dict:
     data = await request.json()
     headers = request.headers
-    return {"data": data, "headers": headers, "path": request.url.path}
+    return {"data": data, "headers": dict(headers), "path": request.url.path}
 
 
-monkey_patch_for_docs_ui(app)
-
-
-def runserver() -> None:
+def runserver() -> None:  # pragma: no cover
     import os
     import subprocess
 
@@ -46,5 +44,5 @@ def runserver() -> None:
     uvicorn.run(root_app, host=host, port=port, reload=auto_reload)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     runserver()
