@@ -39,9 +39,8 @@ jobs:
           poetry run pip install coveralls
       - name: Check code style and Type Hint
         run: |
-          poetry run isort --check-only --src=fastapi_cdn_host .
-          poetry run black --check --fast .
-          poetry run ruff check .
+          poetry run ruff check --extend-select=I .
+          poetry run ruff format --check .
           poetry run mypy .
           poetry run bandit -r fastapi_cdn_host
       - name: test

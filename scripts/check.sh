@@ -3,9 +3,8 @@
 set -e
 set -x
 
-isort --check-only --src=fastapi_cdn_host .
-black --check --fast .
-ruff .
+ruff check --extend-select=I .
+ruff format --check .
 mypy .
 bandit -r fastapi_cdn_host
 echo Done. ✨ 🍰 ✨ 

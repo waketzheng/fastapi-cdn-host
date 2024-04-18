@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "fastapi-cdn-host"
-version = "0.4.1"
+version = "0.4.2"
 description = ""
 authors = ["Waket Zheng <waketzheng@gmail.com>"]
 readme = "README.md"
@@ -12,12 +12,10 @@ httpx = {version = ">=0.23"}
 
 
 [tool.poetry.group.dev.dependencies]
-fast-tort-cli = {extras = ["all"], version="*", python=">=3.11"}
+fast-dev-cli = {extras = ["all"], version=">=0.7.0", python=">=3.11"}
 asyncur = {version=">=0.4.2", python=">=3.11"}
 uvicorn = {extras = ["standard"], version = "*"}
-isort = "*"
-black = "*"
-ruff = "*"
+ruff = ">=0.3"
 mypy = "*"
 pytest = "*"
 coverage = "*"
@@ -48,3 +46,9 @@ parallel=true
 source = ["fastapi_cdn_host"]
 [tool.coverage.report]
 omit = ["*/tests/*", "test_*"]
+exclude_lines = [
+    "pragma: no cover",
+    "@overload",
+    'if __name__ == "__main__":',
+    "if TYPE_CHECKING:",
+]

@@ -2,4 +2,4 @@
 
 set -e
 
-poetry publish --build
+fast upload
