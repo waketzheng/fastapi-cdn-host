@@ -10,7 +10,7 @@
 Auto find swagger-ui in local files, if exist use them.
 Otherwise make concurrent http requests by httpx to find out which third part cdn host is the fastest one.
 
-**English** | [中文](./README.zh-hans.md)
+**English** | [中文](./README.zh.md)
 
 ## Install
 
@@ -21,18 +21,18 @@ pip install fastapi-cdn-host
 ## Usage
 1. Let's say that the default docs CDN host https://cdn.jsdelivr.net is too slow in your network, while unpkg.com is much faster.
 ```py
+import fastapi_cdn_host
 from fastapi import FastAPI
-from fastapi_cdn_host import monkey_patch_for_docs_ui
 
 app = FastAPI()
 # include_routes ...
 
-monkey_patch_for_docs_ui(app)  # Will use `unpkg.com` to replace the `cdn.jsdelivr.net/npm`
+fastapi_cdn_host.patch_docs(app)  # Will use `unpkg.com`(or other faster host) to replace the `cdn.jsdelivr.net/npm`
 ```
 2. In case of there are swagger-ui asset files in local directory named `static`
 ```py
 # Will auto mount static, then use `/static/swagger-ui-bundle.js` and `/static/swagger-ui.css` as docs assets
-monkey_patch_for_docs_ui(app)
+fastapi_cdn_host.patch_docs(app)
 ```
 This line is much more simple to serve offline docs then the example in official document:
 https://fastapi.tiangolo.com/how-to/custom-docs-ui-assets/?h=static#self-hosting-javascript-and-css-for-docs
@@ -43,7 +43,7 @@ https://fastapi.tiangolo.com/how-to/custom-docs-ui-assets/?h=static#self-hosting
 #   http://my-cdn.com/swagger-ui@latest/swagger-ui-bundle.js
 #   http://my-cdn.com/swagger-ui@latest/swagger-ui.css
 # render /redoc with: `http://my-cdn.com/redoc/next/redoc.standalone.js`
-monkey_patch_for_docs_ui(app, docs_cdn_host=('http://my-cdn.com', ('/swagger-ui@latest/', '/redoc/next/')))
+fastapi_cdn_host.patch_docs(app, docs_cdn_host=('http://my-cdn.com', ('/swagger-ui@latest/', '/redoc/next/')))
 ```
 
 ## License

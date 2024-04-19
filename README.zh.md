@@ -5,7 +5,7 @@ API接口文档页面有时候打开会很慢，因为它默认使用的是https
 为实现加快/docs页面的打开速度这么一个小小功能，常常需要放置N行代码来[自定义文档](https://fastapi.tiangolo.com/how-to/custom-docs-ui-assets/?h=static#custom-cdn-for-javascript-and-css)的响应路由。
 
 由于很多个项目都需要这么操作，故开发了一个插件了简化代码，现只需一行就搞定了：
-`monkey_patch_for_docs_ui(app)`
+`fastapi_cdn_host.patch_docs(app)`
 
 [English](./README.md) | **中文**
 
@@ -19,18 +19,18 @@ pip install fastapi-cdn-host
 1. 国内访问fastapi接口文档页面的默认CDN(https://cdn.jsdelivr.net)会比较慢，使用插件后会自动对比它跟unpkg.com的速度，然后采用响应快的那个
 2. 如果是离线环境，这时候外部CDN是访问不了的，只需在同级目录下的static里放置swagger-ui-bundle.js和swagger-ui.css就会自动挂载它们。
 ```py
+import fastapi_cdn_host
 from fastapi import FastAPI
-from fastapi_cdn_host import monkey_patch_for_docs_ui
 
 app = FastAPI()
 # 注册路由、挂载静态文件等 ...
 
-monkey_patch_for_docs_ui(app)
+fastapi_cdn_host.patch_docs(app)
 ```
 
 ## 详解
 
-使用`monkey_patch_for_docs_ui(app)`启用插件后，uvicorn(或gunicorn等)启动服务时，
+使用`fastapi_cdn_host.patch_docs(app)`启用插件后，uvicorn(或gunicorn等)启动服务时，
 会先查找本地文件夹里是否有swagger-ui.css，有的话自动挂载到app并改写/docs的依赖为本地文件。
 没有的话，使用协程并发对比https://cdn.jsdelivr.net、https://unpkg.com、https://cdnjs.cloudflare.com、https://cdn.bootcdn.net
 等几个CDN的响应速度，然后自动采用速度最快的那个。
@@ -41,7 +41,7 @@ monkey_patch_for_docs_ui(app)
 ```py
 from fastapi_cdn_host import CdnHostEnum, CdnHostItem
 
-monkey_patch_for_docs_ui(
+fastapi_cdn_host.patch_docs(
     app,
     docs_cdn_host=CdnHostEnum.extend(
         ('https://lf9-cdn-tos.bytecdntp.com/cdn/expire-1-M', ('/swagger-ui/{version}/', '')),  # 字节
