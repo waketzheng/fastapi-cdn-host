@@ -1,0 +1,25 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+default_language_version:
+    python: python3.11
+repos:
+  - repo: git@github.com:pre-commit/pre-commit-hooks
+    # https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0  # Use the ref you want to point at
+    hooks:
+      - id: check-added-large-files
+      - id: check-toml
+      - id: check-yaml
+        args: [ --unsafe ]
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+
+  - repo: git@github.com:astral-sh/ruff-pre-commit
+    # https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.2  # Ruff version.
+    hooks:
+      # Run the linter.
+      - id: ruff
+        args: [ --fix ]
+      # Run the formatter.
+      - id: ruff-format
