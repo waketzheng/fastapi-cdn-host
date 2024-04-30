@@ -3,13 +3,13 @@ import sys
 from pathlib import Path
 
 import uvicorn  # type:ignore
+import fastapi_cdn_host
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
 
-from fastapi_cdn_host import monkey_patch_for_docs_ui
 
 app = FastAPI(title="HTTP redirect center")
-monkey_patch_for_docs_ui(app)
+fastapi_cdn_host.patch_docs(app)
 
 
 @app.get("/", include_in_schema=False)
