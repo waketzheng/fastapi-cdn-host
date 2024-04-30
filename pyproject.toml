@@ -33,8 +33,12 @@ ignore_missing_imports = true
 explicit_package_bases = true
 check_untyped_defs = true
 
+[tool.ruff.lint]
+extend-select = ["I"]
+
 [tool.ruff.lint.per-file-ignores]
 "test_*.py" = ["E501"]
+"examples/main.py" = ["I001"]
 
 [tool.coverage.run]
 branch = true
