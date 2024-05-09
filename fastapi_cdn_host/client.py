@@ -3,6 +3,7 @@ import re
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
+from ssl import SSLError
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
 
 import anyio
@@ -128,6 +129,7 @@ class HttpSpider:
             httpx.ReadError,
             httpx.ConnectTimeout,
             httpx.ReadTimeout,
+            SSLError,
         ):
             ...
         else:
