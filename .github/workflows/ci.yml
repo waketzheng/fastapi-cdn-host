@@ -42,7 +42,7 @@ jobs:
           poetry run ruff check --extend-select=I .
           poetry run ruff format --check .
           poetry run mypy .
-          poetry run bandit -r fastapi_cdn_host
+          poetry run bandit -c pyproject.toml -r fastapi_cdn_host
       - name: test
         run: ./scripts/test.sh
       - name: build
