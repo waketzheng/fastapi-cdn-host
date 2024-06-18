@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "fastapi-cdn-host"
-version = "0.5.0"
+version = "0.5.1"
 description = ""
 authors = ["Waket Zheng <waketzheng@gmail.com>"]
 readme = "README.md"
