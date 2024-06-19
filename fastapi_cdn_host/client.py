@@ -157,7 +157,7 @@ class HttpSpider:
 
     @classmethod
     async def get_fast_hosts(
-        cls, urls: List[str], wait_seconds=0.8, total_seconds=5
+        cls, urls: List[str], wait_seconds=0.8, total_seconds=3
     ) -> List[str]:
         results = [None] * len(urls)
         async with httpx.AsyncClient(timeout=total_seconds) as client:
@@ -166,7 +166,7 @@ class HttpSpider:
                     tg.start_soon(cls.fetch, client, url, results, i)
                 for _ in range(int(total_seconds / wait_seconds)):
                     await anyio.sleep(wait_seconds)
-                    if any(r is not None for r in results):
+                    if all(r is not None for r in results):
                         tg.cancel_scope.cancel()
                         break
         return [url for url, res in zip(urls, results) if res is not None]
