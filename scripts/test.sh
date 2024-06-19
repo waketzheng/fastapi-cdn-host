@@ -4,6 +4,7 @@ set -e
 set -x
 
 [ -f ../pyproject.toml ] && cd ..
+WORK_DIR="$PWD"
 python tests/prepare_media.py
 
 directories=`python -c 'from pathlib import Path;ds=[p.name for p in Path("tests").glob("*") if p.is_dir()];print(" ".join(ds))'`
@@ -14,8 +15,10 @@ do
     cd ../$folder && coverage run -m pytest -s test_*.py
 done
 
-cd ../../examples
+EG_DIR='examples/normal'
+cd $WORK_DIR/$EG_DIR
 coverage run -m pytest -s test_*.py
-cd ..
-coverage combine tests/*/.coverage examples/.coverage
+
+cd $WORK_DIR
+coverage combine $EG_DIR/.coverage tests/*/.coverage
 coverage report -m
