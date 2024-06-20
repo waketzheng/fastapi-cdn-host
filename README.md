@@ -7,7 +7,8 @@
 [![security: bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)
 
 Auto find swagger-ui in local files, if exist use them.
-Otherwise make concurrent http requests by httpx to find out which third part cdn host is the fastest one.
+Otherwise make concurrent http requests by httpx to find out which third part cdn host(cdn.jsdelivr.net/unpkg.com/cdnjs.cloudflare.com/cdn.bootcdn.net/cdn.staticfile.org) is the fastest one.
+
 
 **English** | [中文](./README.zh.md)
 
@@ -18,7 +19,6 @@ pip install fastapi-cdn-host
 ```
 
 ## Usage
-1. Let's say that the default docs CDN host https://cdn.jsdelivr.net is too slow in your network, while unpkg.com is much faster.
 ```py
 import fastapi_cdn_host
 from fastapi import FastAPI
@@ -26,14 +26,25 @@ from fastapi import FastAPI
 app = FastAPI()
 # include_routes ...
 
-fastapi_cdn_host.patch_docs(app)  # Will use `unpkg.com`(or other faster host) to replace the `cdn.jsdelivr.net/npm`
-```
-2. In case of there are swagger-ui asset files in local directory named `static`
-```py
-# Will auto mount static, then use `/static/swagger-ui-bundle.js` and `/static/swagger-ui.css` as docs assets
 fastapi_cdn_host.patch_docs(app)
 ```
-This line is much more simple to serve offline docs then the example in official document:
+
+## Detail
+1. Let's say that the default docs CDN host https://cdn.jsdelivr.net is too slow in your network, while unpkg.com is much faster.
+```py
+import fastapi_cdn_host
+from fastapi import FastAPI
+
+app = FastAPI()
+fastapi_cdn_host.patch_docs(app)  # Will use `unpkg.com`(or other faster host) to replace the `cdn.jsdelivr.net/npm`
+```
+2. To support offline docs/, put swagger-ui asset files into local directory named `static`
+```py
+from pathlib import Path
+
+fastapi_cdn_host.patch_docs(app, Path(__file__).parent.joinpath('static'))
+```
+This get the same result of the example in official document:
 https://fastapi.tiangolo.com/how-to/custom-docs-ui-assets/?h=static#self-hosting-javascript-and-css-for-docs
 
 3. If asset files are ready in private cdn
