@@ -4,8 +4,10 @@ from pathlib import Path
 
 import pytest
 from config import MY_CDN, PORT
-from httpx import ASGITransport, AsyncClient
+from httpx import AsyncClient
 from main import app
+
+from fastapi_cdn_host.utils import TestClient
 
 try:
     from tests.http_race.utils import UvicornServer
@@ -16,15 +18,8 @@ except ImportError:
 
 
 @pytest.fixture(scope="module")
-def anyio_backend():
-    return "asyncio"
-
-
-@pytest.fixture(scope="module")
 async def client():
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as c:
+    async with TestClient(app) as c:
         yield c
 
 

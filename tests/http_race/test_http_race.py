@@ -18,11 +18,6 @@ except ImportError:
 
 
 @pytest.fixture(scope="module")
-def anyio_backend():
-    return "asyncio"
-
-
-@pytest.fixture(scope="module")
 async def client():
     async with TestClient(app) as c:
         yield c

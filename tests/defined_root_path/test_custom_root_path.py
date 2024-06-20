@@ -2,24 +2,18 @@
 import re
 
 import pytest
-from httpx import ASGITransport, AsyncClient
+from httpx import AsyncClient
 from main import app
 
 from fastapi_cdn_host.client import CdnHostBuilder
+from fastapi_cdn_host.utils import TestClient
 
 default_favicon_url = "https://fastapi.tiangolo.com/img/favicon.png"
 
 
 @pytest.fixture(scope="module")
-def anyio_backend():
-    return "asyncio"
-
-
-@pytest.fixture(scope="module")
 async def client():
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as c:
+    async with TestClient(app) as c:
         yield c
 
 
