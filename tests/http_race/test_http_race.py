@@ -4,9 +4,10 @@ import time
 import pytest
 from httpx import AsyncClient
 from main import app
-from utils import TestClient, UvicornServer
+from utils import UvicornServer
 
 from fastapi_cdn_host.client import HttpSniff
+from fastapi_cdn_host.utils import TestClient
 
 try:
     from asyncur import timeit

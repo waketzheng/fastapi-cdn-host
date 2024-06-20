@@ -3,7 +3,6 @@ import contextlib
 import threading
 import time
 
-import httpx
 import uvicorn
 
 
@@ -26,11 +25,3 @@ class UvicornServer(uvicorn.Server):
         finally:
             self.should_exit = True
             thread.join()
-
-
-@contextlib.asynccontextmanager
-async def TestClient(app, base_url="http://test", **kw):
-    async with httpx.AsyncClient(
-        transport=httpx.ASGITransport(app=app), base_url=base_url, **kw
-    ) as c:
-        yield c

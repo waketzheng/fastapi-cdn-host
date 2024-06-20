@@ -15,11 +15,11 @@ fastapi-cli = {version = "^0.0.4", optional = true}
 all = ["fastapi-cli"]
 
 [tool.poetry.group.dev.dependencies]
-fast-dev-cli = {extras = ["all"], version=">=0.7.0", python=">=3.11"}
+fast-dev-cli = {version=">=0.8.0", python=">=3.11"}
 pre-commit = {version=">=3.7.0", python=">=3.11"}
 asyncur = {version=">=0.5.0", python=">=3.11"}
 bandit = "^1.7.9"
-ruff = "^0.4.8"
+ruff = "^0.4.9"
 mypy = "^1.10.0"
 pytest = "^8.2.2"
 coverage = "^7.5.3"
