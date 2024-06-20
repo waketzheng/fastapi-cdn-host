@@ -1,3 +1,4 @@
+import inspect
 import logging
 import re
 from dataclasses import dataclass
@@ -117,7 +118,7 @@ class AssetUrl:
     favicon: Annotated[Optional[str], "URL of favicon.png/favicon.ico"] = None
 
 
-class HttpSpider:
+class HttpSniff:
     @staticmethod
     async def fetch(
         client: httpx.AsyncClient, url: str, results: list, index: int
@@ -254,7 +255,7 @@ class CdnHostBuilder:
         cls, favicon_url=None, choices=list(CdnHostEnum)
     ) -> AssetUrl:
         css_urls, they = cls.build_race_data(choices)
-        fast_css_url = await HttpSpider.find_fastest_host(css_urls)
+        fast_css_url = await HttpSniff.find_fastest_host(css_urls)
         fast_host, fast_asset_path = they[css_urls.index(fast_css_url)]
         logger.info(f"Select cdn: {fast_host[0]} to serve swagger css/js")
         return cls.build_asset_url(
@@ -298,6 +299,14 @@ class DocsBuilder:
     def __init__(self, index: int) -> None:
         self.index = index
 
+    @staticmethod
+    async def try_request_lock(req: Request, lock: Optional[Callable] = None) -> None:
+        if lock is not None:
+            if inspect.iscoroutinefunction(lock):
+                await lock(req)
+            else:
+                lock(req)
+
     def update_entrypoint(self, func, app: FastAPI, url: str) -> None:
         app.routes[self.index] = APIRoute(url, func, include_in_schema=False)
 
@@ -305,8 +314,7 @@ class DocsBuilder:
         self, urls: AssetUrl, app: FastAPI, url: str, lock=None
     ) -> None:
         async def swagger_ui_html(req: Request) -> HTMLResponse:
-            if lock is not None:
-                lock(req)
+            await self.try_request_lock(req, lock)
             root_path = req.scope.get("root_path", "").rstrip("/")
             asset_urls = CdnHostBuilder.fill_root_path(urls, root_path)
             openapi_url = root_path + app.openapi_url
@@ -333,8 +341,7 @@ class DocsBuilder:
         self, urls: AssetUrl, app: FastAPI, url: str, lock=None
     ) -> None:
         async def redoc_html(req: Request) -> HTMLResponse:
-            if lock is not None:
-                lock(req)
+            await self.try_request_lock(req, lock)
             root_path = req.scope.get("root_path", "").rstrip("/")
             asset_urls = CdnHostBuilder.fill_root_path(urls, root_path)
             openapi_url = root_path + app.openapi_url

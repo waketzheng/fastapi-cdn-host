@@ -28,7 +28,6 @@ def main() -> int:
                 raise exc
             else:
                 res += rc % 255  # rc may be 256
-    print(f"{res = }")
     return res
 
 

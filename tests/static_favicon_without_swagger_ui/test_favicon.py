@@ -3,7 +3,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 from main import app
 
-from fastapi_cdn_host.client import CdnHostBuilder, CdnHostEnum, HttpSpider
+from fastapi_cdn_host.client import CdnHostBuilder, CdnHostEnum, HttpSniff
 
 default_favicon_url = "https://fastapi.tiangolo.com/img/favicon.png"
 
@@ -34,7 +34,7 @@ async def test_docs(client: AsyncClient):  # nosec
     assert '"/static/favicon.ico"' in text
     if urls.js not in text:
         # Sometimes there are several cdn hosts that have good response speed.
-        url_list = await HttpSpider.get_fast_hosts(
+        url_list = await HttpSniff.get_fast_hosts(
             CdnHostBuilder.build_race_data(list(CdnHostEnum))[0]
         )
         assert urls.css in url_list

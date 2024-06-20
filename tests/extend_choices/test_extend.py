@@ -9,7 +9,7 @@ from fastapi_cdn_host.client import (
     CdnHostBuilder,
     CdnHostEnum,
     CdnHostItem,
-    HttpSpider,
+    HttpSniff,
 )
 
 
@@ -66,7 +66,7 @@ async def test_docs(client: AsyncClient):  # nosec
         ),
     )
     urls = await CdnHostBuilder.sniff_the_fastest(choices)
-    url_list = await HttpSpider.get_fast_hosts(
+    url_list = await HttpSniff.get_fast_hosts(
         CdnHostBuilder.build_race_data(list(choices))[0]
     )
     assert urls.css in url_list

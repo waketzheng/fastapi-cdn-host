@@ -5,7 +5,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 from main import app
 
-from fastapi_cdn_host.client import CdnHostBuilder, CdnHostEnum, HttpSpider
+from fastapi_cdn_host.client import CdnHostBuilder, CdnHostEnum, HttpSniff
 
 default_favicon_url = "https://fastapi.tiangolo.com/img/favicon.png"
 
@@ -35,14 +35,15 @@ async def test_docs(client: AsyncClient):  # nosec
     assert response2.status_code == 200, text2
     if urls.js not in text:
         # Sometimes there are several cdn hosts that have good response speed.
-        url_list = await HttpSpider.get_fast_hosts(
+        url_list = await HttpSniff.get_fast_hosts(
             CdnHostBuilder.build_race_data(list(CdnHostEnum))[0]
         )
         assert urls.css in url_list
         assert any(i in text for i in url_list)
-        host = urls.css.split("://")[-1].split("/")[0]
-        redoc_pattern = re.compile(rf"{host}[\w-/.]+redoc")
-        assert any(redoc_pattern.search(text) for i in text2)
+        assert any(
+            re.search(rf"{i.split('://')[-1].split('/')[0]}[\w/.-]+redoc", text2)
+            for i in url_list
+        )
     else:
         assert urls.js in text
         assert urls.css in text
