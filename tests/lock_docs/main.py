@@ -1,4 +1,5 @@
 import calendar
+import sys
 from datetime import datetime
 
 from fastapi import FastAPI, HTTPException, Request, status
@@ -15,7 +16,12 @@ def sync_lock(request: Request) -> None:
         or (weekday := getattr(calendar, d.upper(), None)) is None
         or (weekday != datetime.now().weekday())
     ):
-        raise HTTPException(status_code=status.HTTP_418_IM_A_TEAPOT)
+        status_code = (
+            status.HTTP_418_IM_A_TEAPOT
+            if sys.version_info >= (3, 9)
+            else status.HTTP_417_EXPECTATION_FAILED
+        )
+        raise HTTPException(status_code=status_code)
 
 
 async def lock(request: Request) -> None:

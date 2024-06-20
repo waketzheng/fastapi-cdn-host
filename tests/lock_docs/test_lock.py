@@ -1,4 +1,5 @@
 # mypy: no-disallow-untyped-decorators
+import sys
 from datetime import datetime
 
 import httpx
@@ -44,15 +45,16 @@ class TestLock:
         await self.request_locked(client)
 
     async def request_locked(self, client):
+        status_code = 418 if sys.version_info >= (3, 9) else 417
         response = await client.get("/")
         assert response.status_code == 200
         assert response.text == '"homepage"'
         response = await client.get("/docs")
-        assert response.status_code == 418
-        assert response.json()["detail"] == "I'm a Teapot"
+        assert response.status_code == status_code
+        assert response.json()["detail"] in ("I'm a Teapot", "Expectation Failed")
         response = await client.get("/redoc")
-        assert response.status_code == 418
-        assert response.json()["detail"] == "I'm a Teapot"
+        assert response.status_code == status_code
+        assert response.json()["detail"] in ("I'm a Teapot", "Expectation Failed")
         day = self.weekdays[datetime.now().weekday()]
         response = await client.get(f"/docs?day={day}")
         assert response.status_code == 200
