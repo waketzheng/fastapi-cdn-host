@@ -15,7 +15,7 @@ def main() -> int:
     ds = [p.name for p in Path("tests").glob("*") if p.is_dir()]
     cmd = "coverage run -m pytest -s test_*.py"
     res = 0
-    with concurrent.futures.ProcessPoolExecutor() as executor:
+    with concurrent.futures.ProcessPoolExecutor(max_workers=len(ds)) as executor:
         future_to_folder = {
             executor.submit(os.system, f"cd tests/{d} && {cmd}"): d for d in ds
         }
@@ -24,10 +24,11 @@ def main() -> int:
             try:
                 rc = future.result()
             except Exception as exc:
-                print("%r generated an exception: %s" % (folder, exc))
+                print("Testing %r generated an exception: %s" % (folder, exc))
+                raise exc
             else:
-                print("%r page is %d" % (folder, rc))
-            res += rc
+                res += rc % 255  # rc may be 256
+    print(f"{res = }")
     return res
 
 

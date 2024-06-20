@@ -166,7 +166,7 @@ class HttpSpider:
                     tg.start_soon(cls.fetch, client, url, results, i)
                 for _ in range(int(total_seconds / wait_seconds)):
                     await anyio.sleep(wait_seconds)
-                    if all(r is not None for r in results):
+                    if sum(r is None for r in results) <= 1:
                         tg.cancel_scope.cancel()
                         break
         return [url for url, res in zip(urls, results) if res is not None]

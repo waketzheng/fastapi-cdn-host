@@ -1,4 +1,6 @@
 # mypy: no-disallow-untyped-decorators
+import re
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 from main import app
@@ -28,6 +30,9 @@ async def test_docs(client: AsyncClient):  # nosec
     text = response.text
     assert response.status_code == 200, text
     assert default_favicon_url in text
+    response2 = await client.get("/redoc")
+    text2 = response2.text
+    assert response2.status_code == 200, text2
     if urls.js not in text:
         # Sometimes there are several cdn hosts that have good response speed.
         url_list = await HttpSpider.get_fast_hosts(
@@ -35,12 +40,12 @@ async def test_docs(client: AsyncClient):  # nosec
         )
         assert urls.css in url_list
         assert any(i in text for i in url_list)
+        host = urls.css.split("://")[-1].split("/")[0]
+        redoc_pattern = re.compile(rf"{host}[\w-/.]+redoc")
+        assert any(redoc_pattern.search(text) for i in text2)
     else:
         assert urls.js in text
         assert urls.css in text
-    response2 = await client.get("/redoc")
-    text2 = response2.text
-    assert response2.status_code == 200, text2
-    assert urls.redoc in text2
+        assert urls.redoc in text2
     response = await client.get("/app")
     assert response.status_code == 200
