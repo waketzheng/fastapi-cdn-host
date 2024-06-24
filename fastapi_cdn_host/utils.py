@@ -1,6 +1,6 @@
 import calendar
-import contextlib
 import sys
+from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import AsyncGenerator
 
@@ -8,17 +8,33 @@ from fastapi import HTTPException, Request, status
 from httpx import ASGITransport, AsyncClient
 
 
-@contextlib.asynccontextmanager
+@asynccontextmanager
 async def TestClient(
     app, base_url="http://test", **kw
 ) -> AsyncGenerator[AsyncClient, None]:
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url=base_url, **kw
-    ) as c:
+    """Async test client
+
+    Usage::
+        >>> from main import app
+        >>> @pytest.fixture(scope='session')
+        ... async def client() -> AsyncClient:
+        ...     async with TestClient(app) as c:
+        ...         yield c
+    """
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url=base_url, **kw) as c:
         yield c
 
 
 def weekday_lock(request: Request, name="day") -> None:
+    """A simple docs lock function.
+
+    Usage::
+        >>> import fastapi_cdn_host
+        >>> from fastapi import FastAPI
+        >>> app = FastAPI(openapi_url='/v1/api.json')
+        >>> fastapi_cdn_host.patch_docs(app, lock=fastapi_cdn_host.weekday_lock)
+    """
     if (
         not (d := request.query_params.get(name))
         or (weekday := getattr(calendar, d.upper(), None)) is None
