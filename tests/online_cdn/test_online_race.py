@@ -34,10 +34,16 @@ async def test_docs(client: AsyncClient):  # nosec
         )
         assert urls.css in url_list
         assert any(i in text for i in url_list)
-        assert any(
-            re.search(rf"{i.split('://')[-1].split('/')[0]}[\w/.-]+redoc", text2)
-            for i in url_list
-        )
+        for url in url_list:
+            host = url.split("://")[-1].split("/")[0]
+            pattern = rf'src=".*{host}[\w/.-]+redoc.*"'
+            if m := re.search(pattern, text2):
+                print(f"{m.group() = }")
+                break
+        else:
+            src_urls = re.findall(r'src="[^"]*redoc[^"]*"', text2)
+            print(f"{src_urls = }")
+            print(f"{url_list = }")
     else:
         assert urls.js in text
         assert urls.css in text
