@@ -10,7 +10,7 @@ from fastapi_cdn_host.client import HttpSniff
 from fastapi_cdn_host.utils import TestClient
 
 try:
-    from asyncur import timeit
+    from asynctor import timeit
 except ImportError:
 
     def timeit(f):  # type:ignore

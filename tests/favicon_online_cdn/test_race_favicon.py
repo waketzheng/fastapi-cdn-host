@@ -6,7 +6,7 @@ from main import app
 from fastapi_cdn_host.client import CdnHostBuilder, CdnHostEnum, HttpSniff
 
 try:
-    from asyncur import timeit
+    from asynctor import timeit
 except ImportError:
 
     def timeit(f):  # type:ignore
