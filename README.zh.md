@@ -27,6 +27,9 @@ app = FastAPI()
 
 fastapi_cdn_host.patch_docs(app)
 ```
+更多示例见：
+- examples/
+- tests/
 
 ## 详解
 

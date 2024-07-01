@@ -28,6 +28,9 @@ app = FastAPI()
 
 fastapi_cdn_host.patch_docs(app)
 ```
+See more at:
+- examples/
+- tests/
 
 ## Detail
 1. Let's say that the default docs CDN host https://cdn.jsdelivr.net is too slow in your network, while unpkg.com is much faster.
