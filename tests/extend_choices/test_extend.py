@@ -1,7 +1,7 @@
 # mypy: no-disallow-untyped-decorators
 import pytest
 from httpx import AsyncClient
-from main import app
+from main import SWAGGER_VERSION, app
 
 from fastapi_cdn_host.client import (
     DEFAULT_ASSET_PATH,
@@ -21,7 +21,7 @@ async def client():
 
 
 def test_cdn_host_item():
-    url = "https://raw.githubusercontent.com/swagger-api/swagger-ui/v5.9.0/dist/swagger-ui.css"
+    url = f"https://raw.githubusercontent.com/swagger-api/swagger-ui/v{SWAGGER_VERSION}/dist/swagger-ui.css"
     assert CdnHostItem(url).export() == (
         "https://raw.githubusercontent.com/swagger-api",
         ("/swagger-ui/v{version}/dist/", ""),
@@ -56,7 +56,7 @@ async def test_docs(client: AsyncClient):  # nosec
     choices = CdnHostEnum.extend(
         ("https://lf9-cdn-tos.bytecdntp.com/cdn/expire-1-M", NORMAL_ASSET_PATH),
         CdnHostItem(
-            "https://raw.githubusercontent.com/swagger-api/swagger-ui/v5.9.0/dist/swagger-ui.css"
+            f"https://raw.githubusercontent.com/swagger-api/swagger-ui/v{SWAGGER_VERSION}/dist/swagger-ui.css"
         ),
     )
     urls = await CdnHostBuilder.sniff_the_fastest(choices)

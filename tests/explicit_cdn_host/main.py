@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
 
-from fastapi_cdn_host import CdnHostEnum, monkey_patch_for_docs_ui
+import fastapi_cdn_host
 
 app = FastAPI(title="FastAPI CDN host test")
 
@@ -16,4 +16,4 @@ async def get_app(request: Request) -> dict:
     return {"routes": str(request.app.routes)}
 
 
-monkey_patch_for_docs_ui(app, CdnHostEnum.unpkg)
+fastapi_cdn_host.patch_docs(app, fastapi_cdn_host.CdnHostEnum.unpkg)

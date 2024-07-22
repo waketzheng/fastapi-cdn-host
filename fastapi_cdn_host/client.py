@@ -1,5 +1,6 @@
 import inspect
 import logging
+import math
 import re
 from dataclasses import dataclass
 from enum import Enum
@@ -141,40 +142,39 @@ class HttpSniff:
     async def find_fastest_host(
         cls, urls: List[str], total_seconds=5, loop_interval=0.1
     ) -> str:
-        results = [None] * len(urls)
-        async with httpx.AsyncClient(timeout=total_seconds) as client:
-            async with anyio.create_task_group() as tg:
-                for i, url in enumerate(urls):
-                    tg.start_soon(cls.fetch, client, url, results, i)
-                for _ in range(int(total_seconds / loop_interval) + 1):
-                    if any(r is not None for r in results):
-                        tg.cancel_scope.cancel()
-                        break
-                    await anyio.sleep(loop_interval)
-        for url, res in zip(urls, results):
-            if res is not None:
-                return url
+        if us := await cls.get_fast_hosts(
+            urls, loop_interval, total_seconds, return_first_completed=True
+        ):
+            return us[0]
         return urls[0]
 
     @classmethod
     async def get_fast_hosts(
-        cls, urls: List[str], wait_seconds=0.8, total_seconds=3
+        cls,
+        urls: List[str],
+        wait_seconds=0.8,
+        total_seconds=3,
+        return_first_completed=False,
     ) -> List[str]:
-        results = [None] * len(urls)
-        async with httpx.AsyncClient(timeout=total_seconds) as client:
+        total = len(urls)
+        results = [None] * total
+        thod = 1 if return_first_completed else total - 1
+        async with httpx.AsyncClient(
+            timeout=total_seconds, follow_redirects=True
+        ) as client:
             async with anyio.create_task_group() as tg:
                 for i, url in enumerate(urls):
                     tg.start_soon(cls.fetch, client, url, results, i)
-                for _ in range(int(total_seconds / wait_seconds)):
+                for _ in range(math.ceil(total_seconds / wait_seconds)):
                     await anyio.sleep(wait_seconds)
-                    if sum(r is None for r in results) <= 1:
+                    if sum(r is not None for r in results) >= thod:
                         tg.cancel_scope.cancel()
                         break
         return [url for url, res in zip(urls, results) if res is not None]
 
 
 class CdnHostBuilder:
-    swagger_ui_version = "5.9.0"  # to be optimize: auto get version from fastapi
+    swagger_ui_version = "5"
     swagger_files = {"css": "swagger-ui.css", "js": "swagger-ui-bundle.js"}
     redoc_file = "redoc.standalone.js"
 

@@ -25,8 +25,8 @@ async def client():
 
 @pytest.mark.anyio
 async def test_docs(client: AsyncClient):  # nosec
-    css_url = MY_CDN + "/swagger-ui-dist@5.9.0/swagger-ui.css"
-    js_url = MY_CDN + "/swagger-ui-dist@5.9.0/swagger-ui-bundle.js"
+    css_url = MY_CDN + "/swagger-ui-dist@5/swagger-ui.css"
+    js_url = MY_CDN + "/swagger-ui-dist@5/swagger-ui-bundle.js"
     redoc_url = MY_CDN + "/redoc@next/bundles/redoc.standalone.js"
     favicon_url = MY_CDN + "/favicon.ico"
     with UvicornServer("media_server:app", port=PORT).run_in_thread():
