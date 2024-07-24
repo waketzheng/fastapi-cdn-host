@@ -53,7 +53,7 @@ fastapi_cdn_host.patch_docs(
 )
 ```
 
-## 不修改源代码只是启动时加载插件的方式：
+## 不修改源代码只是启动时加载插件的方式(需要fastapi>=0.111.0)：
 
 ```bash
 fastcdn main.py

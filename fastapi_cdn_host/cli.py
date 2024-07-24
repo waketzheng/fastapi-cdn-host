@@ -1,21 +1,33 @@
 #!/usr/bin/env python
+import os
+import shlex
 import subprocess
 from contextlib import contextmanager
 from datetime import datetime
-from logging import getLogger
 from pathlib import Path
 from typing import Generator, Union
 
 import typer
+from rich import print
 from typing_extensions import Annotated
 
 app = typer.Typer()
-logger = getLogger(__name__)
 
 
 def run_shell(cmd: str) -> None:
-    logger.info(f"--> {cmd}")
-    subprocess.run(cmd, shell=True)
+    print(f"--> {cmd}")
+    command = shlex.split(cmd)
+    cmd_env = None
+    for i, c in enumerate(command):
+        if "=" not in c:
+            break
+        name, value = c.split("=")
+        if cmd_env is None:
+            cmd_env = os.environ.copy()
+        cmd_env[name] = value
+    if i != 0:
+        command = command[i:]
+    subprocess.run(command, env=cmd_env)
 
 
 TEMPLATE = """
@@ -37,14 +49,14 @@ if __name__ == '__main__':
 """
 
 
-def write_app(dest: Path, from_path: str) -> None:
+def write_app(dest: Path, from_path: Union[str, Path]) -> None:
     module = Path(from_path).stem
     size = dest.write_text(TEMPLATE.format(module).strip())
-    logger.info(f"Create {dest} with {size=}")
+    print(f"Create {dest} with {size=}")
 
 
 @contextmanager
-def patch_app(path: str, remove=True) -> Generator[Path, None, None]:
+def patch_app(path: Union[str, Path], remove=True) -> Generator[Path, None, None]:
     ident = f"{datetime.now():%Y%m%d%H%M%S}"
     app_file = Path(f"app_{ident}.py")
     write_app(app_file, path)
@@ -53,7 +65,7 @@ def patch_app(path: str, remove=True) -> Generator[Path, None, None]:
     finally:
         if remove:
             app_file.unlink()
-            logger.info(f"Auto remove temp file: {app_file}")
+            print(f"Auto remove temp file: {app_file}")
 
 
 @app.command()
@@ -61,7 +73,7 @@ def dev(
     path: Annotated[
         Path,
         typer.Argument(
-            help="A path to a Python file or package directory (with [blue]__init__.py[/blue] files) containing a [bold]FastAPI[/bold] app. If not provided, a default set of paths will be tried."
+            help="A path to a Python file or package directory (with [blue]__init__.py[/blue] file) containing a [bold]FastAPI[/bold] app. If not provided, a default set of paths will be tried."
         ),
     ],
     port: Annotated[
@@ -81,7 +93,10 @@ def dev(
         typer.Option(help="Whether enable production mode."),
     ] = False,
 ):
-    with patch_app(str(path), remove) as file:
+    if path == "offline":
+        # TODO: download assets to local
+        pass
+    with patch_app(path, remove) as file:
         mode = "run" if prod else "dev"
         cmd = f"PYTHONPATH=. fastapi {mode} {file}"
         if port:

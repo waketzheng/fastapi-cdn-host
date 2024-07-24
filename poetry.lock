@@ -1420,4 +1420,4 @@ all = ["fastapi-cli"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "6798901e2b94555d23705d16b0593f8245c1bf4abd4c5f4fe593a74260385352"
+content-hash = "c02088a5d1eba447ca3d5a8f4ce3ae5be63b4c65421a5174e295c23b6e39e634"

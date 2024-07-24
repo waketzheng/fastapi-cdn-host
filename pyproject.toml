@@ -19,9 +19,9 @@ fast-dev-cli = {version=">=0.8.0", python=">=3.10"}
 pre-commit = {version=">=3.7.0", python=">=3.10"}
 asynctor = {version=">=0.5.0", python=">=3.10"}
 bandit = "^1.7.9"
-ruff = "^0.5.1"
-mypy = "^1.10.1"
-pytest = "^8.2.2"
+ruff = "^0.5.4"
+mypy = "^1.11.0"
+pytest = "^8.3.1"
 coverage = "^7.6.0"
 click = "^8.1.7"
 
