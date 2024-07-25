@@ -6,7 +6,18 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from ssl import SSLError
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Tuple,
+    Union,
+    cast,
+    overload,
+)
 
 import anyio
 import httpx
@@ -120,10 +131,20 @@ class AssetUrl:
 
 
 class HttpSniff:
-    @staticmethod
+    cached: Dict[str, bytes] = {}
+
+    @classmethod
     async def fetch(
-        client: httpx.AsyncClient, url: str, results: list, index: int
+        cls,
+        client: httpx.AsyncClient,
+        url: str,
+        results: list,
+        index: int,
+        try_cache=False,
     ) -> None:
+        if try_cache and (content := cls.cached.get(url)):
+            results[index] = content
+            return
         try:
             r = await client.get(url)
         except (
@@ -136,17 +157,67 @@ class HttpSniff:
             ...
         else:
             if r.status_code < 300:
-                results[index] = r.content
+                results[index] = cls.cached[url] = r.content
 
     @classmethod
     async def find_fastest_host(
         cls, urls: List[str], total_seconds=5, loop_interval=0.1
     ) -> str:
-        if us := await cls.get_fast_hosts(
+        if us := await cls.bulk_fetch(
             urls, loop_interval, total_seconds, return_first_completed=True
         ):
             return us[0]
         return urls[0]
+
+    @overload
+    @classmethod
+    async def bulk_fetch(
+        cls,
+        urls: List[str],
+        wait_seconds: float = 0.8,
+        total_seconds: float = 3,
+        return_first_completed: bool = False,
+        get_content: Literal[False] = False,
+    ) -> List[str]: ...
+
+    @overload
+    @classmethod
+    async def bulk_fetch(
+        cls,
+        urls: List[str],
+        wait_seconds: float = 0.8,
+        total_seconds: float = 3,
+        return_first_completed: bool = False,
+        get_content: Literal[True] = True,
+    ) -> List[bytes]: ...
+
+    @classmethod
+    async def bulk_fetch(
+        cls,
+        urls: List[str],
+        wait_seconds: float = 0.8,
+        total_seconds: float = 3,
+        return_first_completed: bool = False,
+        get_content: bool = False,
+    ) -> Union[List[str], List[bytes]]:
+        total = len(urls)
+        results = [None] * total
+        async with httpx.AsyncClient(
+            timeout=total_seconds, follow_redirects=True
+        ) as client:
+            async with anyio.create_task_group() as tg:
+                for i, url in enumerate(urls):
+                    tg.start_soon(cls.fetch, client, url, results, i, get_content)
+                if not get_content:
+                    thod = 1 if return_first_completed else total - 1
+                    for _ in range(math.ceil(total_seconds / wait_seconds)):
+                        await anyio.sleep(wait_seconds)
+                        if sum(r is not None for r in results) >= thod:
+                            tg.cancel_scope.cancel()
+                            break
+        if get_content:
+            return [i or b"" for i in results]
+        return [url for url, res in zip(urls, results) if res is not None]
 
     @classmethod
     async def get_fast_hosts(
@@ -156,21 +227,9 @@ class HttpSniff:
         total_seconds=3,
         return_first_completed=False,
     ) -> List[str]:
-        total = len(urls)
-        results = [None] * total
-        thod = 1 if return_first_completed else total - 1
-        async with httpx.AsyncClient(
-            timeout=total_seconds, follow_redirects=True
-        ) as client:
-            async with anyio.create_task_group() as tg:
-                for i, url in enumerate(urls):
-                    tg.start_soon(cls.fetch, client, url, results, i)
-                for _ in range(math.ceil(total_seconds / wait_seconds)):
-                    await anyio.sleep(wait_seconds)
-                    if sum(r is not None for r in results) >= thod:
-                        tg.cancel_scope.cancel()
-                        break
-        return [url for url, res in zip(urls, results) if res is not None]
+        return await cls.bulk_fetch(
+            urls, wait_seconds, total_seconds, return_first_completed
+        )
 
 
 class CdnHostBuilder:

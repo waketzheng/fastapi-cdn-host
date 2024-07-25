@@ -7,9 +7,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import Generator, Union
 
+import anyio
 import typer
 from rich import print
+from rich.progress import Progress, SpinnerColumn, TextColumn
 from typing_extensions import Annotated
+
+from .client import CdnHostBuilder, HttpSniff
 
 app = typer.Typer()
 
@@ -68,6 +72,44 @@ def patch_app(path: Union[str, Path], remove=True) -> Generator[Path, None, None
             print(f"Auto remove temp file: {app_file}")
 
 
+@contextmanager
+def progressbar(msg, color="cyan", transient=True) -> Generator[None, None, None]:
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        transient=transient,
+    ) as progress:
+        progress.add_task(f"[{color}]{msg}...", total=None)
+        yield
+
+
+async def download_offline_assets(dirname="static") -> None:
+    cwd = await anyio.Path.cwd()
+    static_root = cwd / dirname
+    if not await static_root.exists():
+        await static_root.mkdir(parents=True)
+        print(f"Directory {static_root} created.")
+    else:
+        async for p in static_root.glob("swagger-ui*.js"):
+            relative_path = p.relative_to(cwd)
+            print(f"{relative_path} already exists. abort!")
+            return
+    with progressbar("Comparing cdn host response speed", transient=False):
+        urls = await CdnHostBuilder.sniff_the_fastest()
+    print("Result:", urls)
+    with progressbar("Fetching files from cdn", color="blue"):
+        url_list = [urls.js, urls.css, urls.redoc]
+        contents = await HttpSniff.bulk_fetch(url_list, get_content=True)
+        for url, content in zip(url_list, contents):
+            if not content:
+                print(f"Failed to fetch content from {url}")
+            else:
+                path = static_root / Path(url).name
+                size = await path.write_bytes(content)
+                print(f"Write to {path} with {size=}")
+    print("Done.")
+
+
 @app.command()
 def dev(
     path: Annotated[
@@ -93,9 +135,10 @@ def dev(
         typer.Option(help="Whether enable production mode."),
     ] = False,
 ):
-    if path == "offline":
+    if str(path) == "offline":
         # TODO: download assets to local
-        pass
+        anyio.run(download_offline_assets)
+        return
     with patch_app(path, remove) as file:
         mode = "run" if prod else "dev"
         cmd = f"PYTHONPATH=. fastapi {mode} {file}"
