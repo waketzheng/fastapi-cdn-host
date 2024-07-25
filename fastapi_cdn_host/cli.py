@@ -2,15 +2,15 @@
 import os
 import shlex
 import subprocess
-from contextlib import contextmanager
+from contextlib import asynccontextmanager, contextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import Generator, Union
+from typing import AsyncGenerator, Generator, Union
 
 import anyio
 import typer
 from rich import print
-from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.progress import Progress, SpinnerColumn
 from typing_extensions import Annotated
 
 from .client import CdnHostBuilder, HttpSniff
@@ -72,12 +72,46 @@ def patch_app(path: Union[str, Path], remove=True) -> Generator[Path, None, None
             print(f"Auto remove temp file: {app_file}")
 
 
+@asynccontextmanager
+async def percentbar(
+    msg: str, seconds=5, color: str = "cyan", transient=False
+) -> AsyncGenerator[None, None]:
+    """Progressbar with custom font color
+
+    :param msg: prompt message.
+    :param seconds: max seconds of tasks.
+    :param color: font color，e.g.: 'blue'.
+    :param transient: whether clean progressbar after finished.
+    """
+    total = seconds * 100
+
+    async def play(progress, task, expected=1 / 2, thod=0.8) -> None:
+        cost = seconds * expected
+        quick = int(total * thod)
+        delay = cost / quick
+        for i in range(quick):
+            await anyio.sleep(delay)
+            progress.advance(task)
+        cost = seconds - cost
+        slow = total - quick
+        delay = cost / slow
+        for i in range(slow):
+            await anyio.sleep(delay)
+            progress.advance(task)
+
+    with Progress(transient=transient) as progress:
+        task = progress.add_task(f"[{color}]{msg}:", total=total)
+        async with anyio.create_task_group() as tg:
+            tg.start_soon(play, progress, task)
+            yield
+            tg.cancel_scope.cancel()
+            progress.update(task, completed=total)
+
+
 @contextmanager
-def progressbar(msg, color="cyan", transient=True) -> Generator[None, None, None]:
+def spinnerbar(msg, color="yellow", transient=True) -> Generator[None, None, None]:
     with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        transient=transient,
+        SpinnerColumn(), *Progress.get_default_columns(), transient=transient
     ) as progress:
         progress.add_task(f"[{color}]{msg}...", total=None)
         yield
@@ -94,10 +128,10 @@ async def download_offline_assets(dirname="static") -> None:
             relative_path = p.relative_to(cwd)
             print(f"{relative_path} already exists. abort!")
             return
-    with progressbar("Comparing cdn host response speed", transient=False):
+    async with percentbar("Comparing cdn hosts response speed"):
         urls = await CdnHostBuilder.sniff_the_fastest()
     print("Result:", urls)
-    with progressbar("Fetching files from cdn", color="blue"):
+    with spinnerbar("Fetching files from cdn"):
         url_list = [urls.js, urls.css, urls.redoc]
         contents = await HttpSniff.bulk_fetch(url_list, get_content=True)
         for url, content in zip(url_list, contents):
