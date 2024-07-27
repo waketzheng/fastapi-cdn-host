@@ -59,6 +59,12 @@ fastapi_cdn_host.patch_docs(
 fastcdn main.py
 ```
 
+## 手动将js/css/redoc等文件下载到当前目录的static文件夹里
+
+```bash
+fastcdn offline
+```
+
 ## 许可证
 
 [MIT](./LICENSE)

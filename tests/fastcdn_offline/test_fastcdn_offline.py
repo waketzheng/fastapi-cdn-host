@@ -2,7 +2,7 @@
 import pytest
 from httpx import AsyncClient
 
-from fastapi_cdn_host.client import CdnHostBuilder
+from fastapi_cdn_host.client import CdnHostBuilder, HttpSniff
 from fastapi_cdn_host.utils import TestClient
 
 default_favicon_url = "https://fastapi.tiangolo.com/img/favicon.png"
@@ -37,3 +37,17 @@ async def test_docs(client: AsyncClient):  # nosec
     assert "/static/redoc" in text
     response = await client.get("/app")
     assert response.status_code == 200
+
+
+@pytest.mark.anyio
+async def test_try_cache():
+    url = "http://not.exist.url.foo"
+    results = [None]
+    async with AsyncClient(timeout=0.3) as c:
+        await HttpSniff.fetch(c, url, results, 0)
+        assert results[0] is None
+        HttpSniff.cached[url] = b"content"
+        await HttpSniff.fetch(c, url, results, 0, try_cache=True)
+        assert results[0] == b"content"
+        rs = await HttpSniff.bulk_fetch([url], get_content=True)
+        assert rs == results

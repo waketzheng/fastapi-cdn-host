@@ -52,11 +52,14 @@ https://fastapi.tiangolo.com/how-to/custom-docs-ui-assets/?h=static#self-hosting
 
 3. If asset files are ready in private cdn
 ```py
-# Will render /docs with the following asset urls:
-#   http://my-cdn.com/swagger-ui@latest/swagger-ui-bundle.js
-#   http://my-cdn.com/swagger-ui@latest/swagger-ui.css
-# render /redoc with: `http://my-cdn.com/redoc/next/redoc.standalone.js`
-fastapi_cdn_host.patch_docs(app, docs_cdn_host=('http://my-cdn.com', ('/swagger-ui@latest/', '/redoc/next/')))
+from fastapi_cdn_host import AssetUrl
+
+fastapi_cdn_host.patch_docs(app, AssetUrl(
+    js='http://my-cdn.com/swagger-ui.js',
+    css='http://my-cdn.com/swagger-ui.css',
+    redoc='http://my-cdn.com/redoc.standalone.js',
+    favicon='http://my-cdn.com/favicon.ico')
+)
 ```
 
 ## License

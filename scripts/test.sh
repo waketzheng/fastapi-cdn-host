@@ -19,10 +19,12 @@ else
     python scripts/parallel_test.py
 fi
 
-EG_DIR='examples/normal'
-cd $WORK_DIR/$EG_DIR
-coverage run -m pytest -s test_*.py
+for EG_DIR in 'examples/normal' 'examples/offline'
+do
+    cd $WORK_DIR/$EG_DIR
+    coverage run -m pytest -s test_*.py
+done
 
 cd $WORK_DIR
-coverage combine $EG_DIR/.coverage tests/*/.coverage
+coverage combine examples/*/.coverage tests/*/.coverage
 coverage report -m

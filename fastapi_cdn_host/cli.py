@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import os
 import shlex
-import subprocess
+import subprocess  # nosec:B404
 from contextlib import asynccontextmanager, contextmanager
 from datetime import datetime
 from pathlib import Path
@@ -31,7 +31,7 @@ def run_shell(cmd: str) -> None:
         cmd_env[name] = value
     if i != 0:
         command = command[i:]
-    subprocess.run(command, env=cmd_env)
+    subprocess.run(command, env=cmd_env)  # nosec:B603
 
 
 TEMPLATE = """

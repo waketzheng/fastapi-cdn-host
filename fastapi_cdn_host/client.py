@@ -516,7 +516,7 @@ class StaticBuilder:
 def monkey_patch_for_docs_ui(
     app: FastAPI,
     docs_cdn_host: Union[
-        CdnHostEnum, List[CdnHostInfoType], CdnHostInfoType, Path, None
+        CdnHostEnum, List[CdnHostInfoType], CdnHostInfoType, Path, AssetUrl, None
     ] = None,
     favicon_url: Union[str, None] = None,
     lock: Union[Callable, None] = None,
@@ -532,7 +532,12 @@ def monkey_patch_for_docs_ui(
     if not openapi_url or (not docs_url and not redoc_url):
         logger.info("API docs not activated, skip monkey patch.")
         return
-    urls = CdnHostBuilder(app, docs_cdn_host, favicon_url).run()
+    if isinstance(docs_cdn_host, AssetUrl):
+        if favicon_url is not None and favicon_url != docs_cdn_host.favicon:
+            docs_cdn_host.favicon = favicon_url
+        urls = docs_cdn_host
+    else:
+        urls = CdnHostBuilder(app, docs_cdn_host, favicon_url).run()
     route_index: Dict[str, int] = {
         getattr(route, "path", ""): index for index, route in enumerate(app.routes)
     }

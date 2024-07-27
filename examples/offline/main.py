@@ -9,7 +9,9 @@ from pydantic import BaseModel
 import fastapi_cdn_host
 
 app = FastAPI(title="HTTP redirect center")
-fastapi_cdn_host.patch_docs(app, docs_cdn_host=Path(__file__).parent.joinpath("static"))
+BASE_DIR = Path(__file__).parent
+STATIC_ROOT = BASE_DIR / "static"
+fastapi_cdn_host.patch_docs(app, STATIC_ROOT)
 
 
 @app.get("/", include_in_schema=False)
