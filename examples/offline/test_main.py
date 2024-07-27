@@ -1,9 +1,23 @@
+import sys
 from typing import AsyncGenerator
 
 import pytest
-from asynctor.utils import client_manager
 from httpx import AsyncClient
 from main import app
+
+if sys.version_info >= (3, 10):
+    from asynctor.utils import client_manager
+else:
+    from contextlib import asynccontextmanager
+
+    from httpx import ASGITransport
+
+    @asynccontextmanager
+    async def client_manager(app, base_url="http://test", **kw):
+        kw.pop("mount_lifespan", None)
+        kw.update(transport=ASGITransport(app), base_url=base_url)
+        async with AsyncClient(**kw) as c:
+            yield c
 
 
 @pytest.fixture(scope="session")
