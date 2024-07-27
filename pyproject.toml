@@ -1,7 +1,9 @@
 [tool.poetry]
 name = "fastapi-cdn-host"
 version = "0.7.0"
-description = ""
+description = "Auto choose the fastest cdn host for fastapi project docs."
+homepage = "https://github.com/waketzheng/fastapi-cdn-host"
+repository = "https://github.com/waketzheng/fastapi-cdn-host.git"
 authors = ["Waket Zheng <waketzheng@gmail.com>"]
 readme = "README.md"
 
