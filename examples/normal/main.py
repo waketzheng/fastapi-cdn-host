@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-import os
-import subprocess
 import sys
 
 from fastapi import FastAPI, Request
@@ -29,20 +27,24 @@ async def only_for_test(request: Request) -> dict:
     return {"data": data, "headers": dict(headers), "path": request.url.path}
 
 
-def runserver() -> int:  # pragma: no cover
-    cmd = f"fastapi dev {sys.argv[0]}"
-    port = 8000
+def runserver() -> None:  # pragma: no cover
+    from fastapi_cli.cli import main
+
     if args := sys.argv[1:]:
-        if (a := args[0]).isdigit():
+        if (a := args[0]).isdigit():  # python main.py 8080
             port = int(a)
-            args[0] = f"--{port=}"
-        cmd += " " + " ".join(args)
-    if (rc := os.system(cmd)) == 0:
-        host = "127.0.0.1"
-        # Auto open browser
-        subprocess.run(f"open http://{host}:{port}".split())
-    return rc
+            sys.argv[1] = f"--{port=}"
+        elif ":" in a:  # python main.py 0:9000
+            host, p = a.split(":", 1)
+            port = int(p)
+            if host == "0":
+                host = "0.0.0.0"
+            sys.argv[1] = f"--{port=}"
+            sys.argv.insert(1, f"--host={host}")
+    sys.argv.insert(0, "fastapi")
+    sys.argv.insert(1, "dev")
+    main()
 
 
 if __name__ == "__main__":  # pragma: no cover
-    sys.exit(runserver())
+    runserver()
