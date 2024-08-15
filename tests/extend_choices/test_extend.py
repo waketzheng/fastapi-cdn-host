@@ -54,7 +54,7 @@ def test_cdn_host_item():
 @pytest.mark.anyio
 async def test_docs(client: AsyncClient):  # nosec
     choices = CdnHostEnum.extend(
-        ("https://lf9-cdn-tos.bytecdntp.com/cdn/expire-1-M", NORMAL_ASSET_PATH),
+        ("https://cdn.waketzheng.top/ajax/libs", NORMAL_ASSET_PATH),
         CdnHostItem(
             f"https://raw.githubusercontent.com/swagger-api/swagger-ui/v{SWAGGER_VERSION}/dist/swagger-ui.css"
         ),

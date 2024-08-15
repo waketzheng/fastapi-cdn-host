@@ -51,7 +51,7 @@ class CdnHostItem:
     """For cdn host url parse
 
     Usage::
-        >>> CdnHostItem('https://raw.githubusercontent.com/swagger-api/swagger-ui/v5.14.0/dist/swagger-ui.css').export()
+        >>> CdnHostItem('https://raw.githubusercontent.com/swagger-api/swagger-ui/v5.17.14/dist/swagger-ui.css').export()
         ('https://raw.githubusercontent.com/swagger-api/swagger-ui', ("/v{version}/dist/", ""))
     """
 
@@ -234,6 +234,7 @@ class HttpSniff:
 
 class CdnHostBuilder:
     swagger_ui_version = "5"
+    swagger_ui_full_version = "5.17.14"
     swagger_files = {"css": "swagger-ui.css", "js": "swagger-ui-bundle.js"}
     redoc_file = "redoc.standalone.js"
 
@@ -289,6 +290,17 @@ class CdnHostBuilder:
         return urls
 
     @classmethod
+    def build_swagger_path(cls, asset_path: Union[str, Tuple[str, str]]) -> str:
+        if isinstance(asset_path, str):
+            path_fmt = asset_path
+        else:
+            path_fmt = asset_path[0]
+        version = cls.swagger_ui_version  # unpkg/jsdelivr: 'swagger-ui@5/xxx'
+        if "@" not in path_fmt:  # cdnjs/bootcdn/...: 'swagger-ui/5.17.14/xxx'
+            version = cls.swagger_ui_full_version
+        return path_fmt.format(version=version)
+
+    @classmethod
     def build_race_data(
         cls,
         competitors: List[Union[CdnHostInfoType, CdnHostEnum]],
@@ -304,7 +316,7 @@ class CdnHostBuilder:
             else:
                 host, asset_path = cdn_host
             they.append((host, asset_path))
-            path = asset_path[0].format(version=cls.swagger_ui_version)
+            path = cls.build_swagger_path(asset_path)
             url = host + path + cls.swagger_files["css"]
             css_urls.append(url)
         return css_urls, they
@@ -329,7 +341,7 @@ class CdnHostBuilder:
         css: Optional[str] = None,
         favicon_url: Optional[str] = None,
     ) -> AssetUrl:
-        swagger_ui_path = asset_path[0].format(version=cls.swagger_ui_version)
+        swagger_ui_path = cls.build_swagger_path(asset_path)
         js = cdn_host + swagger_ui_path + cls.swagger_files["js"]
         if css is None:
             css = cdn_host + swagger_ui_path + cls.swagger_files["css"]

@@ -25,6 +25,6 @@ fastapi_cdn_host.patch_docs(
         fastapi_cdn_host.CdnHostItem(
             f"https://raw.githubusercontent.com/swagger-api/swagger-ui/v{SWAGGER_VERSION}/dist/swagger-ui.css"
         ),
-        ("https://lf9-cdn-tos.bytecdntp.com/cdn/expire-1-M", NORMAL_ASSET_PATH),
+        ("https://cdn.waketzheng.top/ajax/libs", NORMAL_ASSET_PATH),
     ),
 )
