@@ -3,8 +3,8 @@ import random
 import sys
 from datetime import datetime
 
-import httpx
 import pytest
+from httpx import AsyncClient
 from main import (
     app,
     app_change_lock_param,
@@ -12,7 +12,9 @@ from main import (
     app_sync_lock,
     app_today,
     app_today_class,
+    app_today_lock,
     app_today_param,
+    app_weekday,
 )
 
 from fastapi_cdn_host.utils import TestClient
@@ -40,7 +42,7 @@ class LockTester:
     def get_day_value(self) -> str:
         return ""
 
-    async def request_locked(self, client: httpx.AsyncClient, param_name="day"):
+    async def request_locked(self, client: AsyncClient, param_name="day"):
         status_code = 418 if sys.version_info >= (3, 9) else 417
         response = await client.get("/")
         assert response.status_code == 200
@@ -76,17 +78,15 @@ class TestWeekdayLock(LockTester):
         return self.weekdays[datetime.now().weekday()]
 
     @pytest.mark.anyio
-    async def test_lock(self, client_app: httpx.AsyncClient):
+    async def test_lock(self, client_app: AsyncClient):
         await self.request_locked(client_app)
 
     @pytest.mark.anyio
-    async def test_sync_lock(self, client_sync_lock: httpx.AsyncClient):
+    async def test_sync_lock(self, client_sync_lock: AsyncClient):
         await self.request_locked(client_sync_lock)
 
     @pytest.mark.anyio
-    async def test_change_lock_param_name(
-        self, client_change_param_name: httpx.AsyncClient
-    ):
+    async def test_change_lock_param_name(self, client_change_param_name: AsyncClient):
         await self.request_locked(client_change_param_name, "weekday")
 
 
@@ -114,20 +114,48 @@ async def client_param_lock():
         yield c
 
 
+@pytest.fixture(scope="module")
+async def client_weekday():
+    async with TestClient(app_weekday) as c:
+        yield c
+
+
+@pytest.fixture(scope="module")
+async def client_today_lock():
+    async with TestClient(app_today_lock) as c:
+        yield c
+
+
+@pytest.mark.anyio
+async def test_weekday(client_weekday: AsyncClient) -> None:
+    response = await client_weekday.get("/")
+    assert response.text == '"foo"'
+    response = await client_weekday.get("/docs")
+    assert response.status_code == 200
+
+
+@pytest.mark.anyio
+async def test_today_lock(client_today_lock: AsyncClient) -> None:
+    response = await client_today_lock.get("/")
+    assert response.text == '"foo"'
+    response = await client_today_lock.get("/docs")
+    assert response.status_code == 200
+
+
 class TestTodayLock(LockTester):
     def get_day_value(self) -> str:
         return str(datetime.now().date())
 
     @pytest.mark.anyio
-    async def test_today_lock(self, client_today: httpx.AsyncClient):
+    async def test_today_lock(self, client_today: AsyncClient):
         await self.request_locked(client_today)
 
     @pytest.mark.anyio
-    async def test_today_class(self, client_today_class: httpx.AsyncClient):
+    async def test_today_class(self, client_today_class: AsyncClient):
         await self.request_locked(client_today_class)
 
     @pytest.mark.anyio
-    async def test_today_param(self, client_today_param: httpx.AsyncClient):
+    async def test_today_param(self, client_today_param: AsyncClient):
         await self.request_locked(client_today_param, "date")
 
 
@@ -136,7 +164,7 @@ class TestParamLock(LockTester):
         return str(random.randint(1, 100))
 
     @pytest.mark.anyio
-    async def test_param_lock(self, client_param_lock: httpx.AsyncClient):
+    async def test_param_lock(self, client_param_lock: AsyncClient):
         await self.request_locked(client_param_lock, "a")
         await self.request_locked(client_param_lock, "a")
         await self.request_locked(client_param_lock, "a")

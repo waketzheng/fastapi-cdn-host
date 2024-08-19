@@ -34,7 +34,9 @@ class ParamLock:
         return True
 
     @classmethod
-    def check_param(cls, request: Request, name: str) -> None:
+    def check_param(cls, request: Request, name: str, exclude_localhost=True) -> None:
+        if exclude_localhost and getattr(request.client, "host", "") == "127.0.0.1":
+            return
         if not (d := request.query_params.get(name)) or not cls.validate(d):
             status_code = (
                 status.HTTP_418_IM_A_TEAPOT
@@ -43,13 +45,14 @@ class ParamLock:
             )
             raise HTTPException(status_code=status_code)
 
-    def __init__(self, name: Optional[str] = None) -> None:
+    def __init__(self, name: Optional[str] = None, exclude_localhost=True) -> None:
         if name is None:
             name = self.param_name
         self.name = name
+        self.exclude_localhost = exclude_localhost
 
     def __call__(self, request: Request) -> None:
-        self.check_param(request, self.name)
+        self.check_param(request, self.name, self.exclude_localhost)
 
 
 class WeekdayLock(ParamLock):
@@ -86,7 +89,7 @@ class TodayLock(WeekdayLock):
         return value == str(datetime.now().date())
 
 
-def weekday_lock(request: Request, name="day") -> None:
+def weekday_lock(request: Request, name="day", exclude_localhost=True) -> None:
     """Check docs/ query contains `day` param with value of today's weekday, e.g.: Monday.
 
     Usage::
@@ -95,10 +98,10 @@ def weekday_lock(request: Request, name="day") -> None:
         >>> app = FastAPI(openapi_url='/v1/api.json')
         >>> fastapi_cdn_host.patch_docs(app, lock=fastapi_cdn_host.weekday_lock)
     """
-    WeekdayLock(name)(request)
+    WeekdayLock(name, exclude_localhost)(request)
 
 
-def today_lock(request: Request, name="day") -> None:
+def today_lock(request: Request, name="day", exclude_localhost=True) -> None:
     """Check docs query param contains `day` and its value is today.
 
     Usage::
@@ -107,4 +110,4 @@ def today_lock(request: Request, name="day") -> None:
         >>> app = FastAPI(openapi_url='/v1/api.json')
         >>> fastapi_cdn_host.patch_docs(app, lock=fastapi_cdn_host.today_lock)
     """
-    TodayLock(name)(request)
+    TodayLock(name, exclude_localhost)(request)
