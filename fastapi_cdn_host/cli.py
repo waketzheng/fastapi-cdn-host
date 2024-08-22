@@ -5,9 +5,10 @@ import subprocess  # nosec:B404
 from contextlib import asynccontextmanager, contextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import AsyncGenerator, Generator, Union
+from typing import AsyncGenerator, Generator, Optional, Union
 
 import anyio
+import asyncer
 import typer
 from rich import print
 from rich.progress import Progress, SpinnerColumn
@@ -22,15 +23,17 @@ def run_shell(cmd: str) -> None:
     print(f"--> {cmd}")
     command = shlex.split(cmd)
     cmd_env = None
+    index = 0
     for i, c in enumerate(command):
         if "=" not in c:
+            index = i
             break
         name, value = c.split("=")
         if cmd_env is None:
             cmd_env = os.environ.copy()
         cmd_env[name] = value
-    if i != 0:
-        command = command[i:]
+    if cmd_env is not None:
+        command = command[index:]
     subprocess.run(command, env=cmd_env)  # nosec:B603
 
 
@@ -73,21 +76,19 @@ def patch_app(path: Union[str, Path], remove=True) -> Generator[Path, None, None
 
 
 @asynccontextmanager
-async def percentbar(
-    msg: str, seconds=5, color: str = "cyan", transient=False
-) -> AsyncGenerator[None, None]:
+async def percentbar(msg: str, **kwargs) -> AsyncGenerator[None, None]:
     """Progressbar with custom font color
 
     :param msg: prompt message.
-    :param seconds: max seconds of tasks.
-    :param color: font color，e.g.: 'blue'.
-    :param transient: whether clean progressbar after finished.
     """
+    seconds = kwargs.pop("seconds", 5)
+    color = kwargs.pop("color", "")
     total = seconds * 100
 
-    async def play(progress, task, expected=1 / 2, thod=0.8) -> None:
+    async def play(progress, task) -> None:
+        expected, threshold = 1 / 2, 0.8
         cost = seconds * expected
-        quick = int(total * thod)
+        quick = int(total * threshold)
         delay = cost / quick
         for i in range(quick):
             await anyio.sleep(delay)
@@ -99,25 +100,34 @@ async def percentbar(
             await anyio.sleep(delay)
             progress.advance(task)
 
-    with Progress(transient=transient) as progress:
-        task = progress.add_task(f"[{color}]{msg}:", total=total)
-        async with anyio.create_task_group() as tg:
-            tg.start_soon(play, progress, task)
+    with Progress(**kwargs) as p:
+        if color:
+            t = p.add_task(f"[{color}]{msg}:", total=total)
+        else:
+            t = p.add_task(f"{msg}:", total=total)
+        async with asyncer.create_task_group() as tg:
+            tg.soonify(play)(p, t)
             yield
             tg.cancel_scope.cancel()
-            progress.update(task, completed=total)
+            p.update(t, completed=total)
 
 
 @contextmanager
-def spinnerbar(msg, color="yellow", transient=True) -> Generator[None, None, None]:
+def spinnerbar(
+    msg, color: Optional[str] = None, **kwargs
+) -> Generator[None, None, None]:
+    kwargs.setdefault("transient", True)
     with Progress(
-        SpinnerColumn(), *Progress.get_default_columns(), transient=transient
+        SpinnerColumn(), *Progress.get_default_columns(), **kwargs
     ) as progress:
-        progress.add_task(f"[{color}]{msg}...", total=None)
+        if color:
+            progress.add_task(f"[{color}]{msg}...", total=None)
+        else:
+            progress.add_task(f"{msg}...", total=None)
         yield
 
 
-async def download_offline_assets(dirname="static") -> None:
+async def download_offline_assets(dirname: str) -> None:
     cwd = await anyio.Path.cwd()
     static_root = cwd / dirname
     if not await static_root.exists():
@@ -131,7 +141,7 @@ async def download_offline_assets(dirname="static") -> None:
     async with percentbar("Comparing cdn hosts response speed"):
         urls = await CdnHostBuilder.sniff_the_fastest()
     print("Result:", urls)
-    with spinnerbar("Fetching files from cdn"):
+    with spinnerbar("Fetching files from cdn", color="yellow"):
         url_list = [urls.js, urls.css, urls.redoc]
         contents = await HttpSniff.bulk_fetch(url_list, get_content=True)
         for url, content in zip(url_list, contents):
@@ -149,13 +159,23 @@ def dev(
     path: Annotated[
         Path,
         typer.Argument(
-            help="A path to a Python file or package directory (with [blue]__init__.py[/blue] file) containing a [bold]FastAPI[/bold] app. If not provided, a default set of paths will be tried."
+            help=(
+                "A path to a Python file or package directory"
+                " (with [blue]__init__.py[/blue] file)"
+                " containing a [bold]FastAPI[/bold] app."
+                " If not provided, a default set of paths will be tried."
+            )
         ),
     ],
     port: Annotated[
         Union[int, None],
         typer.Option(
-            help="The port to serve on. You would normally have a termination proxy on top (another program) handling HTTPS on port [blue]443[/blue] and HTTP on port [blue]80[/blue], transferring the communication to your app."
+            help=(
+                "The port to serve on."
+                " You would normally have a termination proxy on top (another program)"
+                " handling HTTPS on port [blue]443[/blue] and HTTP on port [blue]80[/blue],"
+                " transferring the communication to your app."
+            )
         ),
     ] = None,
     remove: Annotated[
@@ -170,8 +190,7 @@ def dev(
     ] = False,
 ):
     if str(path) == "offline":
-        # TODO: download assets to local
-        anyio.run(download_offline_assets)
+        asyncer.runnify(download_offline_assets)(dirname="static")
         return
     with patch_app(path, remove) as file:
         mode = "run" if prod else "dev"

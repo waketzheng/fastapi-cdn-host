@@ -1,29 +1,36 @@
 import calendar
 import sys
-from contextlib import asynccontextmanager
 from datetime import datetime
-from typing import AsyncGenerator, Optional
+from typing import AsyncGenerator, Optional, TypeAlias
 
-from fastapi import HTTPException, Request, status
+from fastapi import FastAPI, HTTPException, Request, status
 from httpx import ASGITransport, AsyncClient
 
+TestClientType: TypeAlias = AsyncGenerator[AsyncClient, None]
 
-@asynccontextmanager
-async def TestClient(
-    app, base_url="http://test", **kw
-) -> AsyncGenerator[AsyncClient, None]:
+
+class TestClient(AsyncClient):
     """Async test client
 
-    Usage::
-        >>> from main import app
-        >>> @pytest.fixture(scope='session')
-        ... async def client() -> AsyncClient:
-        ...     async with TestClient(app) as c:
-        ...         yield c
+    Example::
+
+    ```py
+    from main import app
+
+    assert isinstance(app, FastAPI)
+
+    @pytest.fixture(scope='session')
+    async def client() -> TestClientType:
+        async with TestClient(app) as c:
+            yield c
+    ```
     """
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url=base_url, **kw) as c:
-        yield c
+
+    __test__ = False
+
+    def __init__(self, app: FastAPI, base_url="http://test", **kw) -> None:
+        transport = ASGITransport(app=app)  # type:ignore[arg-type]
+        super().__init__(transport=transport, base_url=base_url, **kw)
 
 
 class ParamLock:
@@ -95,7 +102,7 @@ def weekday_lock(request: Request, name="day", exclude_localhost=True) -> None:
     Usage::
         >>> import fastapi_cdn_host
         >>> from fastapi import FastAPI
-        >>> app = FastAPI(openapi_url='/v1/api.json')
+        >>> app = FastAPI(openapi_url="/v1/api.json")
         >>> fastapi_cdn_host.patch_docs(app, lock=fastapi_cdn_host.weekday_lock)
     """
     WeekdayLock(name, exclude_localhost)(request)

@@ -1,29 +1,23 @@
-import contextlib
-
 import pytest
-from httpx import ASGITransport, AsyncClient
+from httpx import AsyncClient
 from main import app
+
+from fastapi_cdn_host.utils import TestClient, TestClientType
 
 
 @pytest.fixture(scope="session")
-def anyio_backend():
+def anyio_backend() -> str:
     return "asyncio"
 
 
-@contextlib.asynccontextmanager
-async def TestClient(app, base_url="http://test", **kw):
-    async with AsyncClient(transport=ASGITransport(app), base_url=base_url, **kw) as c:
-        yield c
-
-
 @pytest.fixture(scope="session")
-async def client():
+async def client() -> TestClientType:
     async with TestClient(app) as c:
         yield c
 
 
 @pytest.mark.anyio
-async def test_home(client: AsyncClient):
+async def test_home(client: AsyncClient) -> None:
     response = await client.get("/")
     response2 = await client.get("")
     assert response.status_code == 307
@@ -37,14 +31,14 @@ async def test_home(client: AsyncClient):
 
 
 @pytest.mark.anyio
-async def test_get(client: AsyncClient):
+async def test_get(client: AsyncClient) -> None:
     response = await client.get("/app")
     assert response.status_code == 200
     assert isinstance(response.json()["routes"], str)
 
 
 @pytest.mark.anyio
-async def test_post(client: AsyncClient):
+async def test_post(client: AsyncClient) -> None:
     response = await client.post("/test", json={"a": 1})
     assert response.status_code == 200
     data = response.json()

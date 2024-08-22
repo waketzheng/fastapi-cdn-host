@@ -48,6 +48,21 @@ files = [
 ]
 
 [[package]]
+name = "asyncer"
+version = "0.0.7"
+description = "Asyncer, async and await, focused on developer experience."
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "asyncer-0.0.7-py3-none-any.whl", hash = "sha256:f0d579d4f67c4ead52ede3a45c854f462cae569058a8a6a68a4ebccac1c335d8"},
+    {file = "asyncer-0.0.7.tar.gz", hash = "sha256:d5e563fb0f56eb87b97257984703658a4f5bbdb52ff851b3e8ed864cc200b1d2"},
+]
+
+[package.dependencies]
+anyio = ">=3.4.0,<5.0"
+typing_extensions = {version = ">=4.8.0", markers = "python_version < \"3.10\""}
+
+[[package]]
 name = "asynctor"
 version = "0.6.3"
 description = "Async functions to compare with anyio and asyncio, and toolkit to read excel with async/await."
@@ -1484,4 +1499,4 @@ all = ["fastapi-cli"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "723cbc3ed49fb695934be2c6475c77435d25cb342af14dd5b8415bfafaee65a1"
+content-hash = "3221b510c59a230dbfe8725d5516b5bbaf200d777cc32b1ac87d10482c94bfa0"
