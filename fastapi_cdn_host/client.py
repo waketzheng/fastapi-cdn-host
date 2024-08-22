@@ -10,6 +10,7 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Iterable,
     List,
     Literal,
     Optional,
@@ -21,6 +22,7 @@ from typing import (
 
 import anyio
 import httpx
+from anyio import from_thread
 from fastapi import FastAPI, Request
 from fastapi.datastructures import URL
 from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
@@ -51,7 +53,8 @@ class CdnHostItem:
     """For cdn host url parse
 
     Usage::
-        >>> CdnHostItem('https://raw.githubusercontent.com/swagger-api/swagger-ui/v5.17.14/dist/swagger-ui.css').export()
+        >>> url = 'https://raw.githubusercontent.com/swagger-api/swagger-ui/v5.17.14/dist/swagger-ui.css'
+        >>> CdnHostItem(url).export()
         ('https://raw.githubusercontent.com/swagger-api/swagger-ui', ("/v{version}/dist/", ""))
     """
 
@@ -64,9 +67,9 @@ class CdnHostItem:
         """Remove last part of url if '.' in it
 
         Usage::
-            >>> remove_filename('http://localhost:8000/a/b/c.js')
+            >>> CdnHostItem.remove_filename('http://localhost:8000/a/b/c.js')
             'http://localhost:8000/a/b/'
-            >>> remove_filename('http://localhost:8000/a/b')
+            >>> CdnHostItem.remove_filename('http://localhost:8000/a/b')
             'http://localhost:8000/a/b/'
         """
         sep = "://"
@@ -88,17 +91,20 @@ class CdnHostItem:
         parts = url.path.split("/")
         for index, value in enumerate(parts):
             if re.match(r"swagger-ui\b", value):
+                shared_path = "/".join(parts[:index])
+                swagger_path = "/".join([""] + parts[index:])
                 break
-        host = cast(str, scheme) + "://" + cast(str, hostname) + "/".join(parts[:index])
-        swagger_path = re.sub(
-            r"\d+\.\d+\.\d+", "{version}", "/".join([""] + parts[index:])
-        )
+        else:
+            shared_path = "/".join(parts[:-1])
+            swagger_path = "/" + parts[-1]
+        host = cast(str, scheme) + "://" + cast(str, hostname) + shared_path
+        swagger_path = re.sub(r"\d+\.\d+\.\d+", "{version}", swagger_path)
         if self.redoc is None:
             redoc_path = DEFAULT_ASSET_PATH[-1]
         else:
             if (redoc_path := self.redoc) and not redoc_path.endswith("/"):
                 redoc_path = self.remove_filename(redoc_path)
-        return (host, (swagger_path, redoc_path))
+        return host, (swagger_path, redoc_path)
 
 
 class CdnHostEnum(Enum):
@@ -169,8 +175,8 @@ class HttpSniff:
             return us[0]
         return urls[0]
 
-    @overload
     @classmethod
+    @overload
     async def bulk_fetch(
         cls,
         urls: List[str],
@@ -180,8 +186,8 @@ class HttpSniff:
         get_content: Literal[False] = False,
     ) -> List[str]: ...
 
-    @overload
     @classmethod
+    @overload
     async def bulk_fetch(
         cls,
         urls: List[str],
@@ -209,10 +215,10 @@ class HttpSniff:
                 for i, url in enumerate(urls):
                     tg.start_soon(cls.fetch, client, url, results, i, get_content)
                 if not get_content:
-                    thod = 1 if return_first_completed else total - 1
+                    threshold = 1 if return_first_completed else total - 1
                     for _ in range(math.ceil(total_seconds / wait_seconds)):
                         await anyio.sleep(wait_seconds)
-                        if sum(r is not None for r in results) >= thod:
+                        if sum(r is not None for r in results) >= threshold:
                             tg.cancel_scope.cancel()
                             break
         if get_content:
@@ -251,7 +257,7 @@ class CdnHostBuilder:
         async def runner():
             result[0] = await async_func(*args)
 
-        with anyio.from_thread.start_blocking_portal() as portal:
+        with from_thread.start_blocking_portal() as portal:
             portal.call(runner)
 
         return result[0]
@@ -303,7 +309,7 @@ class CdnHostBuilder:
     @classmethod
     def build_race_data(
         cls,
-        competitors: List[Union[CdnHostInfoType, CdnHostEnum]],
+        competitors: Iterable[Union[CdnHostInfoType, CdnHostEnum]],
     ) -> Tuple[List[str], List[tuple]]:
         css_urls: List[str] = []
         they: List[tuple] = []
@@ -323,7 +329,7 @@ class CdnHostBuilder:
 
     @classmethod
     async def sniff_the_fastest(
-        cls, favicon_url=None, choices=list(CdnHostEnum)
+        cls, favicon_url=None, choices=tuple(CdnHostEnum)
     ) -> AssetUrl:
         css_urls, they = cls.build_race_data(choices)
         fast_css_url = await HttpSniff.find_fastest_host(css_urls)
@@ -388,21 +394,22 @@ class DocsBuilder:
             await self.try_request_lock(req, lock)
             root_path = req.scope.get("root_path", "").rstrip("/")
             asset_urls = CdnHostBuilder.fill_root_path(urls, root_path)
-            openapi_url = root_path + app.openapi_url
-            oauth2_redirect_url = app.swagger_ui_oauth2_redirect_url
-            if oauth2_redirect_url:
+            openapi_url = root_path + getattr(app, "openapi_url", "")
+            if oauth2_redirect_url := getattr(
+                app, "swagger_ui_oauth2_redirect_url", ""
+            ):
                 oauth2_redirect_url = root_path + oauth2_redirect_url
             kw: Dict[str, str] = {}
             if urls.favicon:
                 kw["swagger_favicon_url"] = urls.favicon
             return get_swagger_ui_html(
                 openapi_url=openapi_url,
-                title=app.title + " - Swagger UI",
+                title=f"{getattr(app, 'title', '')} - Swagger UI",
                 swagger_js_url=asset_urls.js,
                 swagger_css_url=asset_urls.css,
                 oauth2_redirect_url=oauth2_redirect_url,
-                init_oauth=app.swagger_ui_init_oauth,
-                swagger_ui_parameters=app.swagger_ui_parameters,
+                init_oauth=getattr(app, "swagger_ui_init_oauth", None),
+                swagger_ui_parameters=getattr(app, "swagger_ui_parameters", None),
                 **kw,
             )
 
@@ -415,11 +422,11 @@ class DocsBuilder:
             await self.try_request_lock(req, lock)
             root_path = req.scope.get("root_path", "").rstrip("/")
             asset_urls = CdnHostBuilder.fill_root_path(urls, root_path)
-            openapi_url = root_path + app.openapi_url
+            openapi_url = root_path + getattr(app, "openapi_url", "")
             return get_redoc_html(
                 openapi_url=openapi_url,
                 redoc_js_url=asset_urls.redoc,
-                title=app.title + " - ReDoc",
+                title=f"{getattr(app, 'title', '')} - ReDoc",
             )
 
         self.update_entrypoint(redoc_html, app, url)
@@ -531,13 +538,14 @@ def monkey_patch_for_docs_ui(
         CdnHostEnum, List[CdnHostInfoType], CdnHostInfoType, Path, AssetUrl, None
     ] = None,
     favicon_url: Union[str, None] = None,
-    lock: Union[Callable, None] = None,
+    lock: Union[Callable[[Request], Any], None] = None,
 ) -> None:
     """Use local static files or the faster CDN host for docs asset(swagger-ui)
 
     :param app: the FastAPI object
     :param docs_cdn_host: static root path or CDN host info
     :param favicon_url: docs page logo
+    :param lock: function that receive a request argument to verify it
     """
     openapi_url = getattr(app, "openapi_url", "")
     docs_url, redoc_url = getattr(app, "docs_url", ""), getattr(app, "redoc_url", "")
