@@ -153,13 +153,7 @@ class HttpSniff:
             return
         try:
             r = await client.get(url)
-        except (
-            httpx.ConnectError,
-            httpx.ReadError,
-            httpx.ConnectTimeout,
-            httpx.ReadTimeout,
-            SSLError,
-        ):
+        except (httpx.HTTPError, SSLError):
             ...
         else:
             if r.status_code < 300:

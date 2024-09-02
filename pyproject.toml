@@ -12,7 +12,7 @@ python = "^3.8"
 fastapi = {version = ">=0.100"}
 httpx = {version = ">=0.23"}
 fastapi-cli = {version = "^0.0.5", optional = true}
-asyncer = "^0.0.7"
+asyncer = "^0.0.8"
 
 [tool.poetry.extras]
 all = ["fastapi-cli"]
