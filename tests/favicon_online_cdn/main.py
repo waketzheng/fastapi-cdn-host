@@ -17,4 +17,6 @@ async def get_app(request: Request) -> dict:
     return {"routes": str(request.app.routes)}
 
 
-fastapi_cdn_host.patch_docs(app, favicon_url="https://ubuntu.com/favicon.ico")
+fastapi_cdn_host.patch_docs(
+    app, favicon_url="https://ubuntu.com/favicon.ico", cache=False
+)

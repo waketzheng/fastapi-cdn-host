@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
 
@@ -18,4 +17,4 @@ async def get_app(request: Request) -> dict:
     return {"routes": str(request.app.routes)}
 
 
-fastapi_cdn_host.patch_docs(app, cache=False)
+fastapi_cdn_host.patch_docs(app)

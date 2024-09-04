@@ -17,4 +17,4 @@ async def get_app(request: Request) -> dict:
     return {"routes": str(request.app.routes)}
 
 
-fastapi_cdn_host.patch_docs(app)
+fastapi_cdn_host.patch_docs(app, cache=False)

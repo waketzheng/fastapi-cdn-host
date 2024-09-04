@@ -1,3 +1,4 @@
+import functools
 import inspect
 import logging
 import math
@@ -238,10 +239,13 @@ class CdnHostBuilder:
     swagger_files = {"css": "swagger-ui.css", "js": "swagger-ui-bundle.js"}
     redoc_file = "redoc.standalone.js"
 
-    def __init__(self, app=None, docs_cdn_host=None, favicon_url=None) -> None:
+    def __init__(
+        self, app=None, docs_cdn_host=None, favicon_url=None, cache=None
+    ) -> None:
         self.app = app
         self.docs_cdn_host = docs_cdn_host
         self.favicon_url = favicon_url
+        self._cache = cache
 
     @staticmethod
     def run_async(async_func, *args) -> Any:
@@ -268,14 +272,48 @@ class CdnHostBuilder:
             if isinstance(cdn_host, str):
                 return self.build_asset_url(cdn_host, favicon_url=favicon)
             if isinstance(cdn_host, list) and isinstance(cdn_host[0], tuple):
-                return self.run_async(self.sniff_the_fastest, favicon, cdn_host)
+                return self._cache_wrap(self.run_async)(
+                    self.sniff_the_fastest, favicon, cdn_host
+                )
             cdn_host, asset_path = cdn_host
             if isinstance(asset_path, str):
                 asset_path = (asset_path, asset_path)
             return self.build_asset_url(cdn_host, asset_path, favicon_url=favicon)
         if urls := static_builder.find():
             return urls
-        return self.run_async(self.sniff_the_fastest, favicon)
+        return self._cache_wrap(self.run_async)(self.sniff_the_fastest, favicon)
+
+    def _cache_wrap(self, func: Callable) -> Callable[..., AssetUrl]:
+        if not self._cache:
+            return func
+
+        @functools.wraps(func)
+        def wrapper(*args, **kw):
+            file = Path.home() / ".cache" / "fastapi-cdn-host" / "urls.txt"
+            if file.exists():
+                lines = file.read_text("utf8").splitlines()
+                if len(lines) == 3:
+                    css = js = redoc = ""
+                    for i in lines:
+                        if i.endswith("css"):
+                            css = i
+                        elif "swagger" in i:
+                            js = i
+                        else:
+                            redoc = i
+                    return AssetUrl(
+                        css=css, js=js, redoc=redoc, favicon=self.favicon_url
+                    )
+            elif not (parent := file.parent).exists():
+                parent.mkdir(parents=True)
+                logger.info(f"{parent} created!")
+            urls = func(*args, **kw)
+            content = "\n".join([urls.css, urls.js, urls.redoc]).encode()
+            size = file.write_bytes(content)
+            logger.info(f"Save urls to {file} with {size=}.")
+            return urls
+
+        return wrapper
 
     @staticmethod
     def fill_root_path(urls, root):
@@ -530,6 +568,7 @@ def monkey_patch_for_docs_ui(
     ] = None,
     favicon_url: Union[str, None] = None,
     lock: Union[Callable[[Request], Any], None] = None,
+    cache: bool = True,
 ) -> None:
     """Use local static files or the faster CDN host for docs asset(swagger-ui)
 
@@ -537,6 +576,7 @@ def monkey_patch_for_docs_ui(
     :param docs_cdn_host: static root path or CDN host info
     :param favicon_url: docs page logo
     :param lock: function that receive a request argument to verify it
+    :param cache: whether cache race result in disk
     """
     openapi_url = getattr(app, "openapi_url", "")
     docs_url, redoc_url = getattr(app, "docs_url", ""), getattr(app, "redoc_url", "")
@@ -548,7 +588,7 @@ def monkey_patch_for_docs_ui(
             docs_cdn_host.favicon = favicon_url
         urls = docs_cdn_host
     else:
-        urls = CdnHostBuilder(app, docs_cdn_host, favicon_url).run()
+        urls = CdnHostBuilder(app, docs_cdn_host, favicon_url, cache).run()
     route_index: Dict[str, int] = {
         getattr(route, "path", ""): index for index, route in enumerate(app.routes)
     }

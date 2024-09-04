@@ -27,4 +27,5 @@ fastapi_cdn_host.patch_docs(
         ),
         ("https://cdn.waketzheng.top/ajax/libs", NORMAL_ASSET_PATH),
     ),
+    cache=False,
 )
