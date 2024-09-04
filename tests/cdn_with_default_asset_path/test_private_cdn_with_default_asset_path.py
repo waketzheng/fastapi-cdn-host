@@ -29,9 +29,10 @@ async def test_docs(client: AsyncClient):  # nosec
     css_url = MY_CDN + "/swagger-ui-dist@5/swagger-ui.css"
     js_url = MY_CDN + "/swagger-ui-dist@5/swagger-ui-bundle.js"
     redoc_url = MY_CDN + "/redoc@next/bundles/redoc.standalone.js"
-    CdnHostBuilder.build_swagger_path(
-        "/swagger-ui-dist@{version}/swagger-ui.css"
-    ) == "/swagger-ui-dist@5/swagger-ui.css"
+    assert (
+        CdnHostBuilder.build_swagger_path("/swagger-ui-dist@{version}/swagger-ui.css")
+        == "/swagger-ui-dist@5/swagger-ui.css"
+    )
     favicon_url = MY_CDN + "/favicon.ico"
     with UvicornServer("media_server:app", port=PORT).run_in_thread():
         response = await client.get("/docs")

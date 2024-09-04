@@ -35,4 +35,4 @@ def test_log(caplog):
 def test_get_latest_one(tmp_path):
     (a := tmp_path / "a.txt").touch()
     (b := tmp_path / "b.txt").touch()
-    StaticBuilder.get_latest_one([a, b]) == b
+    assert StaticBuilder.get_latest_one([a, b]) == b

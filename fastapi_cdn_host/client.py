@@ -202,19 +202,19 @@ class HttpSniff:
     ) -> Union[List[str], List[bytes]]:
         total = len(urls)
         results = [None] * total
-        async with httpx.AsyncClient(
-            timeout=total_seconds, follow_redirects=True
-        ) as client:
-            async with anyio.create_task_group() as tg:
-                for i, url in enumerate(urls):
-                    tg.start_soon(cls.fetch, client, url, results, i, get_content)
-                if not get_content:
-                    threshold = 1 if return_first_completed else total - 1
-                    for _ in range(math.ceil(total_seconds / wait_seconds)):
-                        await anyio.sleep(wait_seconds)
-                        if sum(r is not None for r in results) >= threshold:
-                            tg.cancel_scope.cancel()
-                            break
+        async with (
+            httpx.AsyncClient(timeout=total_seconds, follow_redirects=True) as client,
+            anyio.create_task_group() as tg,
+        ):
+            for i, url in enumerate(urls):
+                tg.start_soon(cls.fetch, client, url, results, i, get_content)
+            if not get_content:
+                threshold = 1 if return_first_completed else total - 1
+                for _ in range(math.ceil(total_seconds / wait_seconds)):
+                    await anyio.sleep(wait_seconds)
+                    if sum(r is not None for r in results) >= threshold:
+                        tg.cancel_scope.cancel()
+                        break
         if get_content:
             return [i or b"" for i in results]
         return [url for url, res in zip(urls, results) if res is not None]
@@ -291,10 +291,7 @@ class CdnHostBuilder:
 
     @classmethod
     def build_swagger_path(cls, asset_path: Union[str, Tuple[str, str]]) -> str:
-        if isinstance(asset_path, str):
-            path_fmt = asset_path
-        else:
-            path_fmt = asset_path[0]
+        path_fmt = asset_path if isinstance(asset_path, str) else asset_path[0]
         version = cls.swagger_ui_version  # unpkg/jsdelivr: 'swagger-ui@5/xxx'
         if "@" not in path_fmt:  # cdnjs/bootcdn/...: 'swagger-ui/5.17.14/xxx'
             version = cls.swagger_ui_full_version
@@ -479,20 +476,20 @@ class StaticBuilder:
     def _generate_asset_urls_from_local_files(
         self, gs, mount=None, app=None, static_root=None, favicon=None
     ) -> AssetUrl:
-        if mount:
-            uri_path = mount.path
-        else:
-            uri_path = self.auto_mount_static(app, static_root)
+        uri_path = mount.path if mount else self.auto_mount_static(app, static_root)
         css_file = self.get_latest_one(gs)
-        if _js := list(static_root.rglob("swagger-ui*.js")):
-            js_file = self.get_latest_one(_js)
-        else:
-            js_file = css_file.with_name(CdnHostBuilder.swagger_files["js"])
+        js_file = (
+            self.get_latest_one(_js)
+            if (_js := list(static_root.rglob("swagger-ui*.js")))
+            else (css_file.with_name(CdnHostBuilder.swagger_files["js"]))
+        )
         redoc_name = CdnHostBuilder.redoc_file
-        if _redoc := list(static_root.rglob(redoc_name)):
-            redoc_file = self.get_latest_one(_redoc)
-        else:
-            redoc_file = css_file.with_name(redoc_name)
+
+        redoc_file = (
+            self.get_latest_one(_redoc)
+            if (_redoc := list(static_root.rglob(redoc_name)))
+            else (css_file.with_name(redoc_name))
+        )
 
         css = self.file_to_uri(css_file, static_root, uri_path)
         js = self.file_to_uri(js_file, static_root, uri_path)
@@ -555,9 +552,7 @@ def monkey_patch_for_docs_ui(
     route_index: Dict[str, int] = {
         getattr(route, "path", ""): index for index, route in enumerate(app.routes)
     }
-    if docs_url:
-        if (index := route_index.get(docs_url)) is not None:
-            DocsBuilder(index).update_docs_entrypoint(urls, app, docs_url, lock=lock)
-    if redoc_url:
-        if (index := route_index.get(redoc_url)) is not None:
-            DocsBuilder(index).update_redoc_entrypoint(urls, app, redoc_url, lock=lock)
+    if docs_url and (index := route_index.get(docs_url)) is not None:
+        DocsBuilder(index).update_docs_entrypoint(urls, app, docs_url, lock=lock)
+    if redoc_url and (index := route_index.get(redoc_url)) is not None:
+        DocsBuilder(index).update_redoc_entrypoint(urls, app, redoc_url, lock=lock)

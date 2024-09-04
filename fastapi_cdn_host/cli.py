@@ -90,13 +90,13 @@ async def percentbar(msg: str, **kwargs) -> AsyncGenerator[None, None]:
         cost = seconds * expected
         quick = int(total * threshold)
         delay = cost / quick
-        for i in range(quick):
+        for _ in range(quick):
             await anyio.sleep(delay)
             progress.advance(task)
         cost = seconds - cost
         slow = total - quick
         delay = cost / slow
-        for i in range(slow):
+        for _ in range(slow):
             await anyio.sleep(delay)
             progress.advance(task)
 
