@@ -203,10 +203,9 @@ class HttpSniff:
     ) -> Union[List[str], List[bytes]]:
         total = len(urls)
         results = [None] * total
-        async with (
-            httpx.AsyncClient(timeout=total_seconds, follow_redirects=True) as client,
-            anyio.create_task_group() as tg,
-        ):
+        client = httpx.AsyncClient(timeout=total_seconds, follow_redirects=True)
+        await client.__aenter__()
+        async with anyio.create_task_group() as tg:
             for i, url in enumerate(urls):
                 tg.start_soon(cls.fetch, client, url, results, i, get_content)
             if not get_content:

@@ -2,4 +2,5 @@
 set -x
 
 [ -f ../pyproject.toml ] && cd ..
-fast lint fastapi_cdn_host examples
+ruff format fastapi_cdn_host examples
+ruff check --fix fastapi_cdn_host examples
