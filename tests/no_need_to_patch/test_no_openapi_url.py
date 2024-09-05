@@ -1,5 +1,7 @@
 # mypy: no-disallow-untyped-decorators
 import logging
+import time
+from pathlib import Path
 
 import pytest
 from fastapi import FastAPI
@@ -32,7 +34,8 @@ def test_log(caplog):
     assert info in log_messages
 
 
-def test_get_latest_one(tmp_path):
+def test_get_latest_one(tmp_path: Path):
     (a := tmp_path / "a.txt").touch()
+    time.sleep(0.1)
     (b := tmp_path / "b.txt").touch()
     assert StaticBuilder.get_latest_one([a, b]) == b

@@ -30,7 +30,7 @@ class TestClient(AsyncClient):
     __test__ = False
 
     def __init__(self, app: FastAPI, base_url="http://test", **kw) -> None:
-        transport = ASGITransport(app=app)  # type:ignore[arg-type]
+        transport = ASGITransport(app=app)
         super().__init__(transport=transport, base_url=base_url, **kw)
 
 
