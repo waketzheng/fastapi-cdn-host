@@ -23,7 +23,7 @@ async def get_app(request: Request) -> dict:
 
 fastapi_cdn_host.patch_docs(
     app,
-    docs_cdn_host=(MY_CDN, "/"),
+    cdn_host=(MY_CDN, "/"),
     favicon_url=MY_CDN + "/favicon.ico",
 )
 

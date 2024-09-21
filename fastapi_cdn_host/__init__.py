@@ -1,7 +1,13 @@
-from .client import AssetUrl, CdnHostEnum, CdnHostItem, monkey_patch_for_docs_ui
+from .client import (
+    AssetUrl,
+    CdnHostEnum,
+    CdnHostItem,
+    monkey_patch_for_docs_ui,
+    patch_docs,
+)
 from .utils import today_lock, weekday_lock
 
-patch_docs = monkey_patch = monkey_patch_for_docs_ui
+monkey_patch = monkey_patch_for_docs_ui
 __version__ = "0.8.0"
 __all__ = (
     "__version__",

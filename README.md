@@ -29,8 +29,8 @@ app = FastAPI()
 fastapi_cdn_host.patch_docs(app)
 ```
 See more at:
-- examples/
-- tests/
+- [examples/](https://github.com/waketzheng/fastapi-cdn-host/tree/main/examples)
+- [tests/](https://github.com/waketzheng/fastapi-cdn-host/tree/main/tests)
 
 ## Detail
 1. Let's say that the default docs CDN host https://cdn.jsdelivr.net is too slow in your network, while unpkg.com is much faster.
@@ -54,11 +54,14 @@ https://fastapi.tiangolo.com/how-to/custom-docs-ui-assets/?h=static#self-hosting
 ```py
 from fastapi_cdn_host import AssetUrl
 
-fastapi_cdn_host.patch_docs(app, AssetUrl(
-    js='http://my-cdn.com/swagger-ui.js',
-    css='http://my-cdn.com/swagger-ui.css',
-    redoc='http://my-cdn.com/redoc.standalone.js',
-    favicon='http://my-cdn.com/favicon.ico')
+fastapi_cdn_host.patch_docs(
+    app,
+    cdn_host=AssetUrl(
+        js='http://my-cdn.com/swagger-ui.js',
+        css='http://my-cdn.com/swagger-ui.css',
+        redoc='http://my-cdn.com/redoc.standalone.js',
+        favicon='http://my-cdn.com/favicon.ico',
+    )
 )
 ```
 

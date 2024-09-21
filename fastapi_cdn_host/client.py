@@ -560,19 +560,21 @@ class StaticBuilder:
                 return self._maybe(static_root, app=app, favicon=favicon_url)
 
 
-def monkey_patch_for_docs_ui(
+def patch_docs(
     app: FastAPI,
-    docs_cdn_host: Union[
+    cdn_host: Union[
         CdnHostEnum, List[CdnHostInfoType], CdnHostInfoType, Path, AssetUrl, None
     ] = None,
     favicon_url: Union[str, None] = None,
     lock: Union[Callable[[Request], Any], None] = None,
     cache: bool = True,
+    *,
+    docs_cdn_host=None,  # For backward compatibility
 ) -> None:
     """Use local static files or the faster CDN host for docs asset(swagger-ui)
 
     :param app: the FastAPI object
-    :param docs_cdn_host: static root path or CDN host info
+    :param cdn_host: static root path or CDN host info
     :param favicon_url: docs page logo
     :param lock: function that receive a request argument to verify it
     :param cache: whether cache race result in disk
@@ -582,6 +584,8 @@ def monkey_patch_for_docs_ui(
     if not openapi_url or (not docs_url and not redoc_url):
         logger.info("API docs not activated, skip monkey patch.")
         return
+    if docs_cdn_host is None and cdn_host is not None:
+        docs_cdn_host = cdn_host
     if isinstance(docs_cdn_host, AssetUrl):
         if favicon_url is not None and favicon_url != docs_cdn_host.favicon:
             docs_cdn_host.favicon = favicon_url
@@ -595,3 +599,6 @@ def monkey_patch_for_docs_ui(
         DocsBuilder(index).update_docs_entrypoint(urls, app, docs_url, lock=lock)
     if redoc_url and (index := route_index.get(redoc_url)) is not None:
         DocsBuilder(index).update_redoc_entrypoint(urls, app, redoc_url, lock=lock)
+
+
+monkey_patch_for_docs_ui = patch_docs  # For backward compatibility
