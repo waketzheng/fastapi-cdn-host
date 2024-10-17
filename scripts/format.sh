@@ -1,6 +1,12 @@
 #!/bin/sh -e
 set -x
 
-[ -f ../pyproject.toml ] && cd ..
-ruff format fastapi_cdn_host examples
-ruff check --fix --extend-select=I,B,SIM fastapi_cdn_host examples
+[ -f pyproject.toml ] || ([ -f ../pyproject.toml ] && cd ..)
+
+RUFF=ruff
+if ! [ -x "$(command -v ruff)" ]; then
+    poetry run ruff --version || poetry install
+    RUFF="poetry run ruff"
+fi
+$RUFF format .
+$RUFF check --fix --extend-select=I,B,SIM .
