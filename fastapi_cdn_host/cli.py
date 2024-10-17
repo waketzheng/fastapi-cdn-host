@@ -143,10 +143,12 @@ async def download_offline_assets(dirname: str) -> None:
     print("Result:", urls)
     with spinnerbar("Fetching files from cdn", color="yellow"):
         url_list = [urls.js, urls.css, urls.redoc]
-        contents = await HttpSniff.bulk_fetch(url_list, get_content=True)
+        contents = await HttpSniff.bulk_fetch(
+            url_list, get_content=True, total_seconds=10
+        )
         for url, content in zip(url_list, contents):
             if not content:
-                print(f"Failed to fetch content from {url}")
+                print(f"[red]ERROR:[/red] Failed to fetch content from {url}")
             else:
                 path = static_root / Path(url).name
                 size = await path.write_bytes(content)

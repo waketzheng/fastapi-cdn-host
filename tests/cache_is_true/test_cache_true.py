@@ -1,7 +1,9 @@
 # mypy: no-disallow-untyped-decorators
+import importlib
 import re
 from pathlib import Path
 
+import main
 import pytest
 from httpx import AsyncClient
 from main import app
@@ -18,14 +20,7 @@ async def client():
         yield c
 
 
-@pytest.mark.anyio
-async def test_docs(client: AsyncClient):  # nosec
-    cache_file = Path.home() / ".cache" / "fastapi-cdn-host" / "urls.txt"
-    if cache_file.exists():
-        lines = cache_file.read_text("utf8").splitlines()
-        urls = AssetUrl(css=lines[0], js=lines[1], redoc=lines[2])
-    else:
-        urls = await CdnHostBuilder.sniff_the_fastest()
+async def _run_test(cache_file, urls, client):
     response = await client.get("/docs")
     text = response.text
     assert response.status_code == 200, text
@@ -58,3 +53,20 @@ async def test_docs(client: AsyncClient):  # nosec
     assert response.status_code == 200
     assert cache_file.exists()
     assert cache_file.read_text("utf8").splitlines() == [urls.css, urls.js, urls.redoc]
+
+
+@pytest.mark.anyio
+async def test_docs(client: AsyncClient):  # nosec
+    cache_file = Path.home() / ".cache" / "fastapi-cdn-host" / "urls.txt"
+    if cache_already_exists := cache_file.exists():
+        lines = cache_file.read_text("utf8").splitlines()
+        urls = AssetUrl(css=lines[0], js=lines[1], redoc=lines[2])
+    else:
+        urls = await CdnHostBuilder.sniff_the_fastest()
+    await _run_test(cache_file, urls, client)
+    if cache_already_exists:
+        cache_file.unlink()
+        cache_file.parent.rmdir()
+        urls = await CdnHostBuilder.sniff_the_fastest()
+    importlib.reload(main)
+    await _run_test(cache_file, urls, client)
