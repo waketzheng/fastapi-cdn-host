@@ -27,7 +27,7 @@ pytest = ">=8.3.1"
 coverage = ">=7.6.0"
 click = ">=8.1.7"
 bandit = "^1.7.10"
-trio = "^0.26.2"
+trio = ">=0.26.2,<0.28.0"
 fastapi-cli = "*"
 
 [build-system]
