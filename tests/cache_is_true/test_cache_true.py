@@ -68,5 +68,8 @@ async def test_docs(client: AsyncClient):  # nosec
         cache_file.unlink()
         cache_file.parent.rmdir()
         urls = await CdnHostBuilder.sniff_the_fastest()
+    else:
+        lines = cache_file.read_text("utf8").splitlines()
+        urls = AssetUrl(css=lines[0], js=lines[1], redoc=lines[2])
     importlib.reload(main)
     await _run_test(cache_file, urls, client)
