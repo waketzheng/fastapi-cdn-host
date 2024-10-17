@@ -127,7 +127,7 @@ def spinnerbar(
         yield
 
 
-async def download_offline_assets(dirname: str) -> None:
+async def download_offline_assets(dirname: str, timeout=30) -> None:
     cwd = await anyio.Path.cwd()
     static_root = cwd / dirname
     if not await static_root.exists():
@@ -144,7 +144,7 @@ async def download_offline_assets(dirname: str) -> None:
     with spinnerbar("Fetching files from cdn", color="yellow"):
         url_list = [urls.js, urls.css, urls.redoc]
         contents = await HttpSniff.bulk_fetch(
-            url_list, get_content=True, total_seconds=10
+            url_list, get_content=True, total_seconds=timeout
         )
         for url, content in zip(url_list, contents):
             if not content:

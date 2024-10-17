@@ -584,14 +584,14 @@ def patch_docs(
     if not openapi_url or (not docs_url and not redoc_url):
         logger.info("API docs not activated, skip monkey patch.")
         return
-    if docs_cdn_host is None and cdn_host is not None:
-        docs_cdn_host = cdn_host
-    if isinstance(docs_cdn_host, AssetUrl):
-        if favicon_url is not None and favicon_url != docs_cdn_host.favicon:
-            docs_cdn_host.favicon = favicon_url
-        urls = docs_cdn_host
+    if cdn_host is None and docs_cdn_host is not None:
+        cdn_host = docs_cdn_host
+    if isinstance(cdn_host, AssetUrl):
+        if favicon_url is not None and favicon_url != cdn_host.favicon:
+            cdn_host.favicon = favicon_url
+        urls = cdn_host
     else:
-        urls = CdnHostBuilder(app, docs_cdn_host, favicon_url, cache).run()
+        urls = CdnHostBuilder(app, cdn_host, favicon_url, cache).run()
     route_index: Dict[str, int] = {
         getattr(route, "path", ""): index for index, route in enumerate(app.routes)
     }

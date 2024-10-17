@@ -32,7 +32,11 @@ async def lock(request: Request) -> None:
     sync_lock(request)
 
 
-fastapi_cdn_host.patch_docs(app, lock=lock)
+try:
+    fastapi_cdn_host.patch_docs(app, lock=lock)
+except FileNotFoundError:
+    # Sometimes cache file was removed by unittest of `fastcdn offline`
+    fastapi_cdn_host.patch_docs(app, lock=lock, cache=False)
 fastapi_cdn_host.patch_docs(app_weekday, lock=weekday_lock)
 fastapi_cdn_host.patch_docs(app_weekday_class, lock=WeekdayLock())
 fastapi_cdn_host.patch_docs(app_sync_lock, lock=sync_lock)
