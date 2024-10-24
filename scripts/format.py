@@ -8,17 +8,24 @@ Usage:
 """
 
 import os
-import shlex
-import subprocess
 import sys
-from pathlib import Path
 
-CMD = "fast lint"
+PREPARE = "poetry run ruff --version || poetry install"
+CMD = "ruff format . && ruff check --fix --extend-select=I,B,SIM ."
 TOOL = ("poetry", "pdm", "")[0]
-work_dir = Path(__file__).parent.resolve().parent
-if Path.cwd() != work_dir:
-    os.chdir(str(work_dir))
 
-cmd = (TOOL and f"{TOOL} run ") + CMD
-r = subprocess.run(shlex.split(cmd), env=dict(os.environ, SKIP_MYPY="1"))
-sys.exit(None if r.returncode == 0 else 1)
+parent = os.path.abspath(os.path.dirname(__file__))
+work_dir = os.path.dirname(parent)
+if os.getcwd() != work_dir:
+    os.chdir(work_dir)
+
+# Ensure lint tools installed
+for cmd in PREPARE.split("||"):
+    if os.system(cmd.strip()) == 0:
+        break
+
+# Reformat files
+prefix = TOOL and "{} run ".format(TOOL)
+for cmd in CMD.split("&&"):
+    if os.system(prefix + cmd.strip()) != 0:
+        sys.exit(1)

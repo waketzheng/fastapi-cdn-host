@@ -21,14 +21,14 @@ all = ["fastapi-cli"]
 fast-dev-cli = {version=">=0.8.0", python=">=3.10"}
 pre-commit = {version=">=3.7.0", python=">=3.10"}
 asynctor = {version=">=0.5.0", python=">=3.10"}
-ruff = ">=0.5.4"
-mypy = ">=1.11.0"
-pytest = ">=8.3.1"
-coverage = ">=7.6.0"
-click = ">=8.1.7"
-bandit = "^1.7.10"
-trio = ">=0.26.2,<0.28.0"
-fastapi-cli = "*"
+ruff = ">=0.5,<1"
+mypy = ">=1.11,<2"
+pytest = ">=8.3,<9"
+coverage = ">=7.6,<8"
+click = ">=8.1,<9"
+bandit = ">=1.7,<2"
+trio = ">=0.26,<0.28"
+fastapi-cli = ">=0.0.5,<1"
 
 
 [tool.poetry-dynamic-versioning]
