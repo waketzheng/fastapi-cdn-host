@@ -18,5 +18,5 @@ repos:
     hooks:
       - id: check
         name: check by ruff/mypy
-        entry: ./scripts/check.sh
-        language: script
+        entry: ./scripts/check.py
+        language: python

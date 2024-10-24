@@ -39,9 +39,9 @@ jobs:
           poetry install
           poetry run pip install coveralls
       - name: Check code style and Type Hint
-        run: ./scripts/check.sh
+        run: ./scripts/check.py
       - name: test
-        run: ./scripts/test.sh
+        run: ./scripts/test.py
       - name: build
         run: poetry build
       - name: Upload Coverage
