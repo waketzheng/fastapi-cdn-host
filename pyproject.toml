@@ -71,4 +71,4 @@ exclude_lines = [
 fastcdn = "fastapi_cdn_host:cli.main"
 
 [tool.bandit]
-exclude_dirs = ["tests", "fastapi_cdn_host/cli.py"]
+exclude_dirs = ["tests", "fastapi_cdn_host/cli.py", "scripts", "examples"]

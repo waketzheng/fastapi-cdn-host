@@ -11,7 +11,7 @@ import os
 import sys
 
 PREPARE = "poetry run ruff --version || poetry install"
-CMD = "ruff format . && ruff check --fix --extend-select=I,B,SIM ."
+CMD = "ruff format . && ruff check --fix ."
 TOOL = ("poetry", "pdm", "")[0]
 
 parent = os.path.abspath(os.path.dirname(__file__))

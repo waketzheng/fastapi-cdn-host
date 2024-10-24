@@ -13,9 +13,8 @@ import os
 import sys
 
 PREPARE = "poetry run ruff --version || poetry install"
-CMD = "ruff format --check . && ruff check --extend-select=I,B,SIM . && dmypy run ."
+CMD = "ruff format --check . && ruff check . && dmypy run . && bandit -c pyproject.toml -r ."
 TOOL = ("poetry", "pdm", "")[0]
-BANDIT = True
 
 parent = os.path.abspath(os.path.dirname(__file__))
 work_dir = os.path.dirname(parent)
@@ -38,10 +37,4 @@ for cmd in CMD.split("&&"):
         )
     sys.exit(1)
 
-if BANDIT:
-    package_name = os.path.basename(work_dir).replace("-", "_")
-    cmd = "{}bandit -r {}".format(prefix, package_name)
-    print("-->", cmd)
-    if os.system(cmd) != 0:
-        sys.exit(1)
 print("Done. ✨ 🍰 ✨")
