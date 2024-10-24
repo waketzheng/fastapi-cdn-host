@@ -64,12 +64,12 @@ if "--no-parallel" in sys.argv:
         if not folder.is_dir():
             continue
         chdir(folder)
-        run_command("coverage run -m pytest -s", tool="")
+        run_command("coverage run -m pytest -s")
 else:
     run_command(CMD)
 for eg in ("normal", "offline"):
     chdir(work_dir / "examples" / eg)
-    run_command("coverage run -m pytest -s", tool="")
+    run_command("coverage run -m pytest -s")
 os.chdir(str(work_dir))
 remove_outdate_files(started_at)
 combine_result_files()

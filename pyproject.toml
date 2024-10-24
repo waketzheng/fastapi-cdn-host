@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "fastapi-cdn-host"
-version = "0"  # Handled by poetry-version-plugin with value in fastapi_cdn_host/__init__.py
+version = "0.0.0"  # Managed by poetry-dynamic-versioning with value in fastapi_cdn_host/__init__.py
 description = "Auto choose the fastest cdn host for fastapi project docs."
 homepage = "https://github.com/waketzheng/fastapi-cdn-host"
 repository = "https://github.com/waketzheng/fastapi-cdn-host.git"
@@ -30,9 +30,12 @@ bandit = "^1.7.10"
 trio = ">=0.26.2,<0.28.0"
 fastapi-cli = "*"
 
+
+[tool.poetry-dynamic-versioning]
+enable = true
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]
+build-backend = "poetry_dynamic_versioning.backend"
 
 [tool.mypy]
 pretty = true
@@ -69,6 +72,3 @@ fastcdn = "fastapi_cdn_host:cli.main"
 
 [tool.bandit]
 exclude_dirs = ["tests", "fastapi_cdn_host/cli.py"]
-
-[tool.poetry-version-plugin]
-source = "init"
