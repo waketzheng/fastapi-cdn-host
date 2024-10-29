@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding:utf-8 -*-
 """
 Run `ruff format` to make style and `ruff check --fix` to remove unused imports
 
@@ -10,9 +11,9 @@ Usage:
 import os
 import sys
 
-PREPARE = "poetry run ruff --version || poetry install"
+TOOL = ("poetry", "pdm", "uv", "")[0]
+PREPARE = "{0} run ruff --version || {0} install".format(TOOL)
 CMD = "ruff format . && ruff check --fix ."
-TOOL = ("poetry", "pdm", "")[0]
 
 parent = os.path.abspath(os.path.dirname(__file__))
 work_dir = os.path.dirname(parent)

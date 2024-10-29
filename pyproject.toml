@@ -18,11 +18,11 @@ asyncer = "^0.0.8"
 all = ["fastapi-cli"]
 
 [tool.poetry.group.dev.dependencies]
-fast-dev-cli = {version=">=0.8.0", python=">=3.10"}
+fast-dev-cli = {version=">=0.11.0", python=">=3.10"}
 pre-commit = {version=">=3.7.0", python=">=3.10"}
-asynctor = {version=">=0.5.0", python=">=3.10"}
-ruff = ">=0.5,<1"
-mypy = ">=1.11,<2"
+asynctor = {version=">=0.6.0", python=">=3.10"}
+ruff = ">=0.7,<1"
+mypy = ">=1.12,<2"
 pytest = ">=8.3,<9"
 coverage = ">=7.6,<8"
 click = ">=8.1,<9"
