@@ -302,11 +302,11 @@ class CdnHostBuilder:
                     return AssetUrl(
                         css=css, js=js, redoc=redoc, favicon=self.favicon_url
                     )
-            elif not (parent := file.parent).exists():
-                parent.mkdir(parents=True)
-                logger.info(f"{parent} created!")
             urls = func(*args, **kw)
             content = "\n".join([urls.css, urls.js, urls.redoc]).encode()
+            if not (parent := file.parent).exists():
+                parent.mkdir(parents=True)
+                logger.info(f"{parent} created!")
             size = file.write_bytes(content)
             logger.info(f"Save urls to {file} with {size=}.")
             return urls
