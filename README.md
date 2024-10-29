@@ -7,7 +7,7 @@
 [![security: bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)
 
 Auto find swagger-ui in local files, if exist use them.
-Otherwise make concurrent http requests by httpx to find out which third part cdn host(cdn.jsdelivr.net/unpkg.com/cdnjs.cloudflare.com/cdn.bootcdn.net/cdn.staticfile.org) is the fastest one.
+Otherwise make concurrent http requests by httpx to find out which third part cdn host(cdn.jsdelivr.net/unpkg.com/cdnjs.cloudflare.com/cdn.staticfile.org) is the fastest one.
 
 
 **English** | [中文](./README.zh.md)

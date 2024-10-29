@@ -9,8 +9,11 @@ from pydantic import BaseModel
 import fastapi_cdn_host
 
 app = FastAPI(title="HTTP redirect center")
-BASE_DIR = Path(__file__).parent
+BASE_DIR = Path(__file__).parent.resolve()
 STATIC_ROOT = BASE_DIR / "static"
+# Uncomment the following the lines to auto download assets:
+# if not STATIC_ROOT.exists():
+#     subprocess.run(["fastcdn", "offline"])
 fastapi_cdn_host.patch_docs(app, STATIC_ROOT)
 
 
@@ -35,4 +38,4 @@ async def post_sth(data: PostData) -> dict:
 
 
 if __name__ == "__main__":  # pragma: no cover
-    uvicorn.run(f"{Path(__file__).stem}:app")
+    uvicorn.run(app)

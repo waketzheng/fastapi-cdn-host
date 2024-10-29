@@ -112,7 +112,6 @@ class CdnHostEnum(Enum):
     jsdelivr: CdnHostInfoType = "https://cdn.jsdelivr.net/npm"
     unpkg: CdnHostInfoType = "https://unpkg.com"
     cdnjs: CdnHostInfoType = "https://cdnjs.cloudflare.com/ajax/libs", NORMAL_ASSET_PATH
-    bootcdn: CdnHostInfoType = "https://cdn.bootcdn.net/ajax/libs", NORMAL_ASSET_PATH
     qiniu: CdnHostInfoType = "https://cdn.staticfile.org", NORMAL_ASSET_PATH
 
     @classmethod

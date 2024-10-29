@@ -13,6 +13,9 @@ help:
 up:
 	@poetry run fast upgrade
 
+plugin:
+	@pipx inject poetry "poetry-dynamic-versioning[plugin]"
+
 deps:
 	@poetry install
 
