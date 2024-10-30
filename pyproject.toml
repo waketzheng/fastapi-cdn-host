@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "fastapi-cdn-host"
-version = "0.0.0"  # Managed by poetry-dynamic-versioning with value in fastapi_cdn_host/__init__.py
+version = "0"  # Managed by poetry-plugin-version with value in fastapi_cdn_host/__init__.py
 description = "Auto choose the fastest cdn host for fastapi project docs."
 homepage = "https://github.com/waketzheng/fastapi-cdn-host"
 repository = "https://github.com/waketzheng/fastapi-cdn-host.git"
@@ -31,11 +31,9 @@ trio = ">=0.26,<0.28"
 fastapi-cli = ">=0.0.5,<1"
 
 
-[tool.poetry-dynamic-versioning]
-enable = true
 [build-system]
-requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]
-build-backend = "poetry_dynamic_versioning.backend"
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
 
 [tool.mypy]
 pretty = true
@@ -72,3 +70,7 @@ fastcdn = "fastapi_cdn_host:cli.main"
 
 [tool.bandit]
 exclude_dirs = ["tests", "fastapi_cdn_host/cli.py", "scripts", "examples"]
+
+# pipx inject poetry poetry-plugin-version
+[tool.poetry-plugin-version]
+source = "init"
