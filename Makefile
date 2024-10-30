@@ -14,7 +14,7 @@ up:
 	@poetry run fast upgrade
 
 plugin:
-	@pipx inject poetry "poetry-dynamic-versioning[plugin]"
+	@pipx inject poetry poetry-plugin-version
 
 deps:
 	@poetry install
