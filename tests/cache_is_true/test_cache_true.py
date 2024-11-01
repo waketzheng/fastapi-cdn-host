@@ -1,6 +1,8 @@
 # mypy: no-disallow-untyped-decorators
 import importlib
+import os
 import re
+import sys
 from pathlib import Path
 
 import main
@@ -73,3 +75,21 @@ async def test_docs(client: AsyncClient):  # nosec
         urls = AssetUrl(css=lines[0], js=lines[1], redoc=lines[2])
     importlib.reload(main)
     await _run_test(cache_file, urls, client)
+
+
+def test_cache_file(mocker, tmp_path):
+    file = tmp_path / "foo" / "a.txt"
+    file.parent.mkdir()
+    file.touch()
+    assert os.path.exists(str(file))
+    file.parent.chmod(0)
+    with pytest.raises(PermissionError):
+        file.exists()
+    mocker.patch("os.path.expanduser", return_value=str(file))
+    _, cache_file = CdnHostBuilder().get_cache_file()
+    if sys.platform == "win32":
+        temp_directory_env_name = "temp"
+        temp_dir = Path(os.getenv(temp_directory_env_name, "."))
+        assert cache_file == temp_dir / ".cache/fastapi-cdn-host/urls.txt"
+    else:
+        assert cache_file.as_posix() == "/tmp/.cache/fastapi-cdn-host/urls.txt"

@@ -2,7 +2,9 @@ import functools
 import inspect
 import logging
 import math
+import os
 import re
+import sys
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -236,6 +238,7 @@ class CdnHostBuilder:
     swagger_ui_full_version = "5.17.14"
     swagger_files = {"css": "swagger-ui.css", "js": "swagger-ui-bundle.js"}
     redoc_file = "redoc.standalone.js"
+    default_cache_file = "~/.cache/fastapi-cdn-host/urls.txt"
 
     def __init__(
         self, app=None, docs_cdn_host=None, favicon_url=None, cache=None
@@ -281,14 +284,26 @@ class CdnHostBuilder:
             return urls
         return self._cache_wrap(self.run_async)(self.sniff_the_fastest, favicon)
 
+    def get_cache_file(self) -> Tuple[bool, Path]:
+        file = Path(os.path.expanduser(self.default_cache_file))
+        try:
+            exists = file.exists()
+        except PermissionError:
+            tmp_dir = Path("/tmp")  # nosec:B108
+            if sys.platform == "win32":
+                tmp_dir = Path(os.getenv("temp", "."))  # NOQA:SIM112
+            file = tmp_dir / self.default_cache_file.replace("~/", "")
+            exists = file.exists()
+        return exists, file
+
     def _cache_wrap(self, func: Callable) -> Callable[..., AssetUrl]:
         if not self._cache:
             return func
 
         @functools.wraps(func)
         def wrapper(*args, **kw):
-            file = Path.home() / ".cache" / "fastapi-cdn-host" / "urls.txt"
-            if file.exists():
+            already_cached, file = self.get_cache_file()
+            if already_cached:
                 lines = file.read_text("utf8").splitlines()
                 if len(lines) == 3:
                     css = js = redoc = ""
