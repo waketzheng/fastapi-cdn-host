@@ -29,6 +29,7 @@ click = ">=8.1,<9"
 bandit = ">=1.7,<2"
 trio = ">=0.26,<0.28"
 fastapi-cli = ">=0.0.5,<1"
+pytest-mock = "^3.14.0"
 
 
 [build-system]
