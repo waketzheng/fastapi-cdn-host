@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import functools
 import inspect
 import logging
@@ -9,19 +11,7 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from ssl import SSLError
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterable,
-    List,
-    Literal,
-    Optional,
-    Tuple,
-    Union,
-    cast,
-    overload,
-)
+from typing import Any, Callable, Iterable, Literal, Union, cast, overload
 
 import anyio
 import httpx
@@ -39,15 +29,15 @@ logger = logging.getLogger("fastapi-cdn-host")
 OFFICIAL_REDOC = "https://cdn.redoc.ly/redoc/latest/bundles/"
 DEFAULT_ASSET_PATH = ("/swagger-ui-dist@{version}/", "/redoc@next/bundles/")
 NORMAL_ASSET_PATH = ("/swagger-ui/{version}/", OFFICIAL_REDOC)
-CdnPathInfoType = Tuple[
+CdnPathInfoType = tuple[
     Annotated[str, "swagger-ui module path info(must startswith '/')"],
     Annotated[str, "redoc path or url info(must startswith '/')"],
 ]
 CdnDomainType = Annotated[str, "Host for swagger-ui/redoc"]
-StrictCdnHostInfoType = Tuple[CdnDomainType, CdnPathInfoType]
+StrictCdnHostInfoType = tuple[CdnDomainType, CdnPathInfoType]
 CdnHostInfoType = Union[
     Annotated[CdnDomainType, f"Will use DEFAULT_ASSET_PATH: {DEFAULT_ASSET_PATH}"],
-    Tuple[CdnDomainType, Annotated[str, "In case of swagger/redoc has the same path"]],
+    tuple[CdnDomainType, Annotated[str, "In case of swagger/redoc has the same path"]],
     StrictCdnHostInfoType,
 ]
 
@@ -119,8 +109,8 @@ class CdnHostEnum(Enum):
     @classmethod
     def extend(
         cls, *host: Union[StrictCdnHostInfoType, CdnHostItem]
-    ) -> List[CdnHostInfoType]:
-        host_infos: List[StrictCdnHostInfoType] = []
+    ) -> list[CdnHostInfoType]:
+        host_infos: list[StrictCdnHostInfoType] = []
         for i in host:
             if isinstance(i, CdnHostItem):
                 j = i.export()
@@ -135,11 +125,11 @@ class AssetUrl:
     css: Annotated[str, "URL of swagger-ui.css"]
     js: Annotated[str, "URL of swagger-ui-bundle.js"]
     redoc: Annotated[str, "URL of redoc.standalone.js"]
-    favicon: Annotated[Optional[str], "URL of favicon.png/favicon.ico"] = None
+    favicon: Annotated[str | None, "URL of favicon.png/favicon.ico"] = None
 
 
 class HttpSniff:
-    cached: Dict[str, bytes] = {}
+    cached: dict[str, bytes] = {}
 
     @classmethod
     async def fetch(
@@ -163,7 +153,7 @@ class HttpSniff:
 
     @classmethod
     async def find_fastest_host(
-        cls, urls: List[str], total_seconds=5, loop_interval=0.1
+        cls, urls: list[str], total_seconds=5, loop_interval=0.1
     ) -> str:
         if us := await cls.bulk_fetch(
             urls, loop_interval, total_seconds, return_first_completed=True
@@ -175,33 +165,33 @@ class HttpSniff:
     @overload
     async def bulk_fetch(
         cls,
-        urls: List[str],
+        urls: list[str],
         wait_seconds: float = 0.8,
         total_seconds: float = 3,
         return_first_completed: bool = False,
         get_content: Literal[False] = False,
-    ) -> List[str]: ...
+    ) -> list[str]: ...
 
     @classmethod
     @overload
     async def bulk_fetch(
         cls,
-        urls: List[str],
+        urls: list[str],
         wait_seconds: float = 0.8,
         total_seconds: float = 3,
         return_first_completed: bool = False,
         get_content: Literal[True] = True,
-    ) -> List[bytes]: ...
+    ) -> list[bytes]: ...
 
     @classmethod
     async def bulk_fetch(
         cls,
-        urls: List[str],
+        urls: list[str],
         wait_seconds: float = 0.8,
         total_seconds: float = 3,
         return_first_completed: bool = False,
         get_content: bool = False,
-    ) -> Union[List[str], List[bytes]]:
+    ) -> Union[list[str], list[bytes]]:
         total = len(urls)
         results = [None] * total
         client = httpx.AsyncClient(timeout=total_seconds, follow_redirects=True)
@@ -223,11 +213,11 @@ class HttpSniff:
     @classmethod
     async def get_fast_hosts(
         cls,
-        urls: List[str],
+        urls: list[str],
         wait_seconds=0.8,
         total_seconds=3,
         return_first_completed=False,
-    ) -> List[str]:
+    ) -> list[str]:
         return await cls.bulk_fetch(
             urls, wait_seconds, total_seconds, return_first_completed
         )
@@ -284,7 +274,7 @@ class CdnHostBuilder:
             return urls
         return self._cache_wrap(self.run_async)(self.sniff_the_fastest, favicon)
 
-    def get_cache_file(self) -> Tuple[bool, Path]:
+    def get_cache_file(self) -> tuple[bool, Path]:
         file = Path(os.path.expanduser(self.default_cache_file))
         try:
             exists = file.exists()
@@ -341,7 +331,7 @@ class CdnHostBuilder:
         return urls
 
     @classmethod
-    def build_swagger_path(cls, asset_path: Union[str, Tuple[str, str]]) -> str:
+    def build_swagger_path(cls, asset_path: Union[str, tuple[str, str]]) -> str:
         path_fmt = asset_path if isinstance(asset_path, str) else asset_path[0]
         version = cls.swagger_ui_version  # unpkg/jsdelivr: 'swagger-ui@5/xxx'
         if "@" not in path_fmt:  # cdnjs/bootcdn/...: 'swagger-ui/5.17.14/xxx'
@@ -352,9 +342,9 @@ class CdnHostBuilder:
     def build_race_data(
         cls,
         competitors: Iterable[Union[CdnHostInfoType, CdnHostEnum]],
-    ) -> Tuple[List[str], List[tuple]]:
-        css_urls: List[str] = []
-        they: List[tuple] = []
+    ) -> tuple[list[str], list[tuple]]:
+        css_urls: list[str] = []
+        they: list[tuple] = []
         for cdn_host in competitors:
             if isinstance(cdn_host, CdnHostEnum):
                 cdn_host = cdn_host.value
@@ -385,9 +375,9 @@ class CdnHostBuilder:
     def build_asset_url(
         cls,
         cdn_host: str,
-        asset_path: Tuple[str, str] = DEFAULT_ASSET_PATH,
-        css: Optional[str] = None,
-        favicon_url: Optional[str] = None,
+        asset_path: tuple[str, str] = DEFAULT_ASSET_PATH,
+        css: str | None = None,
+        favicon_url: str | None = None,
     ) -> AssetUrl:
         swagger_ui_path = cls.build_swagger_path(asset_path)
         js = cdn_host + swagger_ui_path + cls.swagger_files["js"]
@@ -419,7 +409,7 @@ class DocsBuilder:
         self.index = index
 
     @staticmethod
-    async def try_request_lock(req: Request, lock: Optional[Callable] = None) -> None:
+    async def try_request_lock(req: Request, lock: Callable | None = None) -> None:
         if lock is not None:
             if inspect.iscoroutinefunction(lock):
                 await lock(req)
@@ -441,7 +431,7 @@ class DocsBuilder:
                 app, "swagger_ui_oauth2_redirect_url", ""
             ):
                 oauth2_redirect_url = root_path + oauth2_redirect_url
-            kw: Dict[str, str] = {}
+            kw: dict[str, str] = {}
             if urls.favicon:
                 kw["swagger_favicon_url"] = urls.favicon
             return get_swagger_ui_html(
@@ -490,7 +480,7 @@ class StaticBuilder:
 
     def _maybe(
         self, static_root: Path, mount=None, app=None, favicon=None
-    ) -> Optional[AssetUrl]:
+    ) -> AssetUrl | None:
         if gs := list(static_root.rglob("swagger-ui*.css")):
             logger.info(f"Using local files in {static_root} to serve docs assets.")
             return self._generate_asset_urls_from_local_files(
@@ -499,7 +489,7 @@ class StaticBuilder:
         return None
 
     @staticmethod
-    def get_latest_one(gs: List[Path]) -> Path:
+    def get_latest_one(gs: list[Path]) -> Path:
         if len(gs) > 1:
             gs = sorted(gs, key=lambda x: x.stat().st_mtime, reverse=True)
         return gs[0]
@@ -577,7 +567,7 @@ class StaticBuilder:
 def patch_docs(
     app: FastAPI,
     cdn_host: Union[
-        CdnHostEnum, List[CdnHostInfoType], CdnHostInfoType, Path, AssetUrl, None
+        CdnHostEnum, list[CdnHostInfoType], CdnHostInfoType, Path, AssetUrl, None
     ] = None,
     favicon_url: Union[str, None] = None,
     lock: Union[Callable[[Request], Any], None] = None,
@@ -606,7 +596,7 @@ def patch_docs(
         urls = cdn_host
     else:
         urls = CdnHostBuilder(app, cdn_host, favicon_url, cache).run()
-    route_index: Dict[str, int] = {
+    route_index: dict[str, int] = {
         getattr(route, "path", ""): index for index, route in enumerate(app.routes)
     }
     if docs_url and (index := route_index.get(docs_url)) is not None:

@@ -1,11 +1,13 @@
 #!/usr/bin/env python
+from __future__ import annotations
+
 import os
 import shlex
 import subprocess  # nosec:B404
 from contextlib import asynccontextmanager, contextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import AsyncGenerator, Generator, Optional, Union
+from typing import AsyncGenerator, Generator, Optional
 
 import anyio
 import asyncer
@@ -56,14 +58,14 @@ if __name__ == '__main__':
 """
 
 
-def write_app(dest: Path, from_path: Union[str, Path]) -> None:
+def write_app(dest: Path, from_path: str | Path) -> None:
     module = Path(from_path).stem
     size = dest.write_text(TEMPLATE.format(module).strip())
     print(f"Create {dest} with {size=}")
 
 
 @contextmanager
-def patch_app(path: Union[str, Path], remove=True) -> Generator[Path, None, None]:
+def patch_app(path: str | Path, remove=True) -> Generator[Path, None, None]:
     ident = f"{datetime.now():%Y%m%d%H%M%S}"
     app_file = Path(f"app_{ident}.py")
     write_app(app_file, path)
@@ -170,7 +172,7 @@ def dev(
         ),
     ],
     port: Annotated[
-        Union[int, None],
+        Optional[int],
         typer.Option(
             help=(
                 "The port to serve on."
