@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from ssl import SSLError
-from typing import Any, Callable, Iterable, Literal, Union, cast, overload
+from typing import Any, Callable, Iterable, Literal, Tuple, Union, cast, overload
 
 import anyio
 import httpx
@@ -29,15 +29,15 @@ logger = logging.getLogger("fastapi-cdn-host")
 OFFICIAL_REDOC = "https://cdn.redoc.ly/redoc/latest/bundles/"
 DEFAULT_ASSET_PATH = ("/swagger-ui-dist@{version}/", "/redoc@next/bundles/")
 NORMAL_ASSET_PATH = ("/swagger-ui/{version}/", OFFICIAL_REDOC)
-CdnPathInfoType = tuple[
+CdnPathInfoType = Tuple[
     Annotated[str, "swagger-ui module path info(must startswith '/')"],
     Annotated[str, "redoc path or url info(must startswith '/')"],
 ]
 CdnDomainType = Annotated[str, "Host for swagger-ui/redoc"]
-StrictCdnHostInfoType = tuple[CdnDomainType, CdnPathInfoType]
+StrictCdnHostInfoType = Tuple[CdnDomainType, CdnPathInfoType]
 CdnHostInfoType = Union[
     Annotated[CdnDomainType, f"Will use DEFAULT_ASSET_PATH: {DEFAULT_ASSET_PATH}"],
-    tuple[CdnDomainType, Annotated[str, "In case of swagger/redoc has the same path"]],
+    Tuple[CdnDomainType, Annotated[str, "In case of swagger/redoc has the same path"]],
     StrictCdnHostInfoType,
 ]
 
