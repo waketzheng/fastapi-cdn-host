@@ -7,7 +7,7 @@ import subprocess  # nosec:B404
 from contextlib import asynccontextmanager, contextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import AsyncGenerator, Generator, Optional
+from typing import AsyncGenerator, Generator
 
 import anyio
 import asyncer
@@ -115,9 +115,7 @@ async def percentbar(msg: str, **kwargs) -> AsyncGenerator[None, None]:
 
 
 @contextmanager
-def spinnerbar(
-    msg, color: Optional[str] = None, **kwargs
-) -> Generator[None, None, None]:
+def spinnerbar(msg, color: str | None = None, **kwargs) -> Generator[None, None, None]:
     kwargs.setdefault("transient", True)
     with Progress(
         SpinnerColumn(), *Progress.get_default_columns(), **kwargs
@@ -172,7 +170,7 @@ def dev(
         ),
     ],
     port: Annotated[
-        Optional[int],
+        int,
         typer.Option(
             help=(
                 "The port to serve on."
@@ -181,7 +179,7 @@ def dev(
                 " transferring the communication to your app."
             )
         ),
-    ] = None,
+    ] = 0,
     remove: Annotated[
         bool,
         typer.Option(
