@@ -64,13 +64,13 @@ typing_extensions = {version = ">=4.8.0", markers = "python_version < \"3.10\""}
 
 [[package]]
 name = "asynctor"
-version = "0.6.7"
+version = "0.6.8"
 description = "Async functions to compare with anyio and asyncio, and toolkit to read excel with async/await."
 optional = false
-python-versions = "<4.0,>=3.10"
+python-versions = "<4.0,>=3.9"
 files = [
-    {file = "asynctor-0.6.7-py3-none-any.whl", hash = "sha256:ea65991212d04608f7604f8c93519cfd6a4d01a57070b830841c1ecc1e54ae15"},
-    {file = "asynctor-0.6.7.tar.gz", hash = "sha256:349bc80ca3f5af04da0f327ec87968093cacee6da864c3b6bb32ba20c54aab63"},
+    {file = "asynctor-0.6.8-py3-none-any.whl", hash = "sha256:9ca1a395a5e4035e5cbbc7a3f1f0613343c8bb532ebee7c83f10103cc8f92f57"},
+    {file = "asynctor-0.6.8.tar.gz", hash = "sha256:79cc73880034e568584d031b85ce76cc7429b9f3c0554c53f6c64492f71d1c73"},
 ]
 
 [package.dependencies]
