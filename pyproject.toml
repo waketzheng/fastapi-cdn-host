@@ -11,7 +11,7 @@ readme = "README.md"
 python = "^3.8"
 fastapi = {version = ">=0.100"}
 httpx = {version = ">=0.23"}
-fastapi-cli = {version = "^0.0.6", optional = true}
+fastapi-cli = {version = ">=0.0.6,<0.0.8", optional = true}
 asyncer = "^0.0.8"
 
 [tool.poetry.extras]
