@@ -10,7 +10,6 @@ from pathlib import Path
 from typing import AsyncGenerator, Generator
 
 import anyio
-import asyncer
 import typer
 from rich import print
 from rich.progress import Progress, SpinnerColumn
@@ -107,8 +106,8 @@ async def percentbar(msg: str, **kwargs) -> AsyncGenerator[None, None]:
             t = p.add_task(f"[{color}]{msg}:", total=total)
         else:
             t = p.add_task(f"{msg}:", total=total)
-        async with asyncer.create_task_group() as tg:
-            tg.soonify(play)(p, t)
+        async with anyio.create_task_group() as tg:
+            tg.start_soon(play, p, t)
             yield
             tg.cancel_scope.cancel()
             p.update(t, completed=total)
@@ -192,7 +191,7 @@ def dev(
     ] = False,
 ):
     if str(path) == "offline":
-        asyncer.runnify(download_offline_assets)(dirname="static")
+        anyio.run(download_offline_assets, "static")
         return
     with patch_app(path, remove) as file:
         mode = "run" if prod else "dev"
