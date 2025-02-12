@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import calendar
 import sys
+from collections.abc import AsyncGenerator
 from datetime import datetime
-from typing import AsyncGenerator, Optional
 
 from fastapi import FastAPI, HTTPException, Request, status
 from httpx import ASGITransport, AsyncClient
@@ -53,7 +55,7 @@ class ParamLock:
             )
             raise HTTPException(status_code=status_code)
 
-    def __init__(self, name: Optional[str] = None, exclude_localhost=True) -> None:
+    def __init__(self, name: str | None = None, exclude_localhost=True) -> None:
         if name is None:
             name = self.param_name
         self.name = name

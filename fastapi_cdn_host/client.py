@@ -7,11 +7,12 @@ import math
 import os
 import re
 import sys
+from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from ssl import SSLError
-from typing import Any, Callable, Iterable, Literal, Tuple, Union, cast, overload
+from typing import Annotated, Any, Callable, Literal, Union, cast, overload
 
 import anyio
 import httpx
@@ -22,22 +23,21 @@ from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
 from fastapi.responses import HTMLResponse
 from fastapi.routing import APIRoute, Mount
 from fastapi.staticfiles import StaticFiles
-from typing_extensions import Annotated  # type: ignore[attr-defined]
 
 logger = logging.getLogger("fastapi-cdn-host")
 
 OFFICIAL_REDOC = "https://cdn.redoc.ly/redoc/latest/bundles/"
 DEFAULT_ASSET_PATH = ("/swagger-ui-dist@{version}/", "/redoc@next/bundles/")
 NORMAL_ASSET_PATH = ("/swagger-ui/{version}/", OFFICIAL_REDOC)
-CdnPathInfoType = Tuple[
+CdnPathInfoType = tuple[
     Annotated[str, "swagger-ui module path info(must startswith '/')"],
     Annotated[str, "redoc path or url info(must startswith '/')"],
 ]
 CdnDomainType = Annotated[str, "Host for swagger-ui/redoc"]
-StrictCdnHostInfoType = Tuple[CdnDomainType, CdnPathInfoType]
+StrictCdnHostInfoType = tuple[CdnDomainType, CdnPathInfoType]
 CdnHostInfoType = Union[
     Annotated[CdnDomainType, f"Will use DEFAULT_ASSET_PATH: {DEFAULT_ASSET_PATH}"],
-    Tuple[CdnDomainType, Annotated[str, "In case of swagger/redoc has the same path"]],
+    tuple[CdnDomainType, Annotated[str, "In case of swagger/redoc has the same path"]],
     StrictCdnHostInfoType,
 ]
 
@@ -51,7 +51,7 @@ class CdnHostItem:
         ('https://raw.githubusercontent.com/swagger-api/swagger-ui', ("/v{version}/dist/", ""))
     """
 
-    def __init__(self, swagger_ui: str, redoc: Union[str, None] = "") -> None:
+    def __init__(self, swagger_ui: str, redoc: str | None = "") -> None:
         self.swagger_ui = swagger_ui
         self.redoc = redoc
 
@@ -101,14 +101,14 @@ class CdnHostItem:
 
 
 class CdnHostEnum(Enum):
-    jsdelivr: CdnHostInfoType = "https://cdn.jsdelivr.net/npm"
-    unpkg: CdnHostInfoType = "https://unpkg.com"
-    cdnjs: CdnHostInfoType = "https://cdnjs.cloudflare.com/ajax/libs", NORMAL_ASSET_PATH
-    qiniu: CdnHostInfoType = "https://cdn.staticfile.org", NORMAL_ASSET_PATH
+    jsdelivr = "https://cdn.jsdelivr.net/npm"
+    unpkg = "https://unpkg.com"
+    qiniu = "https://cdn.staticfile.org", NORMAL_ASSET_PATH
+    cdnjs = "https://cdnjs.cloudflare.com/ajax/libs", NORMAL_ASSET_PATH
 
     @classmethod
     def extend(
-        cls, *host: Union[StrictCdnHostInfoType, CdnHostItem]
+        cls, *host: StrictCdnHostInfoType | CdnHostItem
     ) -> list[CdnHostInfoType]:
         host_infos: list[StrictCdnHostInfoType] = []
         for i in host:
@@ -191,7 +191,7 @@ class HttpSniff:
         total_seconds: float = 3,
         return_first_completed: bool = False,
         get_content: bool = False,
-    ) -> Union[list[str], list[bytes]]:
+    ) -> list[str] | list[bytes]:
         total = len(urls)
         results = [None] * total
         client = httpx.AsyncClient(timeout=total_seconds, follow_redirects=True)
@@ -331,7 +331,7 @@ class CdnHostBuilder:
         return urls
 
     @classmethod
-    def build_swagger_path(cls, asset_path: Union[str, tuple[str, str]]) -> str:
+    def build_swagger_path(cls, asset_path: str | tuple[str, str]) -> str:
         path_fmt = asset_path if isinstance(asset_path, str) else asset_path[0]
         version = cls.swagger_ui_version  # unpkg/jsdelivr: 'swagger-ui@5/xxx'
         if "@" not in path_fmt:  # cdnjs/bootcdn/...: 'swagger-ui/5.17.14/xxx'
@@ -341,7 +341,7 @@ class CdnHostBuilder:
     @classmethod
     def build_race_data(
         cls,
-        competitors: Iterable[Union[CdnHostInfoType, CdnHostEnum]],
+        competitors: Iterable[CdnHostInfoType | CdnHostEnum],
     ) -> tuple[list[str], list[tuple]]:
         css_urls: list[str] = []
         they: list[tuple] = []
@@ -350,9 +350,9 @@ class CdnHostBuilder:
                 cdn_host = cdn_host.value
             if isinstance(cdn_host, str):
                 host = cdn_host
-                asset_path: Union[str, CdnPathInfoType] = DEFAULT_ASSET_PATH
+                asset_path: str | CdnPathInfoType = DEFAULT_ASSET_PATH
             else:
-                host, asset_path = cdn_host
+                host, asset_path = cast(StrictCdnHostInfoType, cdn_host)
             they.append((host, asset_path))
             path = cls.build_swagger_path(asset_path)
             url = host + path + cls.swagger_files["css"]
@@ -389,7 +389,7 @@ class CdnHostBuilder:
         redoc = redoc_path + cls.redoc_file
         return AssetUrl(css=css, js=js, redoc=redoc, favicon=favicon_url)
 
-    def mount_local_favicon(self, favicon_url) -> Union[str, None]:
+    def mount_local_favicon(self, favicon_url) -> str | None:
         if favicon_url is not None and favicon_url.startswith("/"):
             filename = favicon_url.lstrip("/")
             favicon_file = Path(filename)
@@ -468,8 +468,8 @@ class StaticBuilder:
     def __init__(
         self,
         app,
-        static_root: Union[Path, None] = None,
-        favicon_url: Union[str, None] = None,
+        static_root: Path | None = None,
+        favicon_url: str | None = None,
     ):
         self.app = app
         self.static_root = static_root
@@ -499,9 +499,7 @@ class StaticBuilder:
         return uri_path.rstrip("/") + "/" + p.relative_to(static_root).as_posix()
 
     @staticmethod
-    def auto_mount_static(
-        app: FastAPI, static_root: Union[Path, str], uri_path=None
-    ) -> str:
+    def auto_mount_static(app: FastAPI, static_root: Path | str, uri_path=None) -> str:
         if uri_path is None:
             uri_path = "/static"
         if all(getattr(r, "path", "") != uri_path for r in app.routes):
@@ -549,8 +547,8 @@ class StaticBuilder:
     def detect_local_file(
         self,
         app,
-        static_root: Union[Path, None] = None,
-        favicon_url: Union[str, None] = None,
+        static_root: Path | None = None,
+        favicon_url: str | None = None,
     ):
         if static_root is not None:
             return self._maybe(static_root, app=app)
@@ -566,11 +564,14 @@ class StaticBuilder:
 
 def patch_docs(
     app: FastAPI,
-    cdn_host: Union[
-        CdnHostEnum, list[CdnHostInfoType], CdnHostInfoType, Path, AssetUrl, None
-    ] = None,
-    favicon_url: Union[str, None] = None,
-    lock: Union[Callable[[Request], Any], None] = None,
+    cdn_host: CdnHostEnum
+    | list[CdnHostInfoType]
+    | CdnHostInfoType
+    | Path
+    | AssetUrl
+    | None = None,
+    favicon_url: str | None = None,
+    lock: Callable[[Request], Any] | None = None,
     cache: bool = True,
     *,
     docs_cdn_host=None,  # For backward compatibility
