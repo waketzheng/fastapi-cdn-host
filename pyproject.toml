@@ -29,7 +29,7 @@ requires-poetry = ">=2.0"
 python = ">=3.9,<4.0"
 
 [tool.poetry.group.dev.dependencies]
-fast-dev-cli = {extras=["all"], version="^0.11.6"}
+fastdevcli-slim = {extras=["all"], version="^0.11.6"}
 trio = "^0.28.0"
 fastapi-cli = "^0.0.6"
 pre-commit = "^4.1.0"
