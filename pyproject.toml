@@ -4,7 +4,7 @@ description = "Auto choose the fastest cdn host for fastapi project docs."
 authors = [{name="Waket Zheng", email="waketzheng@gmail.com"}]
 readme = "README.md"
 license = { text = "MIT" }
-requires-python = ">=3.9,<4"
+requires-python = ">=3.9"
 dynamic = [ "version" ]
 dependencies = [
     "fastapi>=0.100",
@@ -24,6 +24,9 @@ repository = "https://github.com/waketzheng/fastapi-cdn-host.git"
 [tool.poetry]
 version = "0"  # Managed by poetry-plugin-version
 requires-poetry = ">=2.0"
+
+[tool.poetry.dependencies]
+python = ">=3.9,<4.0"
 
 [tool.poetry.group.dev.dependencies]
 fast-dev-cli = {extras=["all"], version="^0.11.6"}
