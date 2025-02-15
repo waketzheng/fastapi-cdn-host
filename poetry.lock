@@ -353,14 +353,14 @@ test = ["pytest (>=6)"]
 
 [[package]]
 name = "fast-dev-cli"
-version = "0.11.6"
+version = "0.11.7"
 description = "Python project development tool."
 optional = false
 python-versions = "<4,>=3.9"
 groups = ["dev"]
 files = [
-    {file = "fast_dev_cli-0.11.6-py3-none-any.whl", hash = "sha256:26031a14859cd688ef4dcefef7559b6131172b25c7f590308e47540c2603d1b7"},
-    {file = "fast_dev_cli-0.11.6.tar.gz", hash = "sha256:4794e761d204871252acb5370b5e022a114f162bafe5b758c2ae8cfaff3d92cb"},
+    {file = "fast_dev_cli-0.11.7-py3-none-any.whl", hash = "sha256:6ea86671bca0402ecd7b8c06ebfaef76c7b5d7e5b55f4f43a8be669ea0737e1a"},
+    {file = "fast_dev_cli-0.11.7.tar.gz", hash = "sha256:d6ba7f6c926c2795c9b20d9048a9298561acc0aa2ab37d24abfe0db6524c2122"},
 ]
 
 [package.dependencies]

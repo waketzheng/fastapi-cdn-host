@@ -1,6 +1,5 @@
 [project]
 name = "fastapi-cdn-host"
-version = "0"  # Managed by poetry-plugin-version with value in fastapi_cdn_host/__init__.py
 description = "Auto choose the fastest cdn host for fastapi project docs."
 authors = [{name="Waket Zheng", email="waketzheng@gmail.com"}]
 readme = "README.md"
@@ -14,6 +13,9 @@ dependencies = [
 
 [project.optional-dependencies]
 all = ["fastapi-cli>=0.0.6"]
+
+[project.scripts]
+fastcdn = "fastapi_cdn_host:cli.main"
 
 [project.urls]
 homepage = "https://github.com/waketzheng/fastapi-cdn-host"
@@ -69,9 +71,6 @@ exclude_lines = [
     'if __name__ == "__main__":',
     "if TYPE_CHECKING:",
 ]
-
-[tool.poetry.scripts]
-fastcdn = "fastapi_cdn_host:cli.main"
 
 [tool.bandit]
 exclude_dirs = ["tests", "fastapi_cdn_host/cli.py", "scripts", "examples"]
