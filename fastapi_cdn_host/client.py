@@ -506,7 +506,7 @@ class StaticBuilder:
             name = uri_path.strip("/")
             app.mount(
                 uri_path,
-                StaticFiles(directory=static_root, follow_symlink=True),
+                StaticFiles(directory=Path(static_root).resolve(), follow_symlink=True),
                 name=name,
             )
             logger.info(f"Auto mount static files to {uri_path} from {static_root}")

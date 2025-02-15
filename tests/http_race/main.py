@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 from datetime import datetime
-from typing import Union
 
 import anyio
 from fastapi import FastAPI, HTTPException
@@ -8,17 +9,17 @@ app = FastAPI()
 
 
 @app.get("/sleep")
-async def sleep(seconds: Union[int, float]):
+async def sleep(seconds: int | float):
     return await wait_for(seconds)
 
 
 @app.get("/wait/{seconds}")
-async def wait(seconds: Union[int, float]):
+async def wait(seconds: int | float):
     return await wait_for(seconds)
 
 
 @app.get("/delay/{seconds}")
-async def delay(seconds: Union[int, float]):
+async def delay(seconds: int | float):
     return await wait_for(seconds)
 
 

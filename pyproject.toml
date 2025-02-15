@@ -46,7 +46,9 @@ extend-select = [
     "B",    # flake8-bugbear
     "SIM",  # flake8-simplify
     "C4",   # flake8-comprehensions
-    "UP",   # https://docs.astral.sh/ruff/rules/#pyupgrade-up
+    "FA",     # https://docs.astral.sh/ruff/rules/#flake8-future-annotations-fa
+    "UP",     # https://docs.astral.sh/ruff/rules/#pyupgrade-up
+    "RUF100", # https://docs.astral.sh/ruff/rules/#ruff-specific-rules-ruf
 ]
 
 [tool.ruff.lint.per-file-ignores]

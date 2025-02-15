@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
 
@@ -19,3 +19,7 @@ async def get_app(request: Request) -> dict:
 
 
 fastapi_cdn_host.patch_docs(app)
+
+
+if __name__ == "__main__":
+    uvicorn.run("__main__:app", reload=True)
