@@ -7,13 +7,13 @@ license = { text = "MIT" }
 requires-python = ">=3.9"
 dynamic = [ "version" ]
 dependencies = [
-    "fastapi>=0.100",
-    "httpx>=0.23",
+    "fastapi (>=0.100.0,<1.0.0)",
+    "httpx (>=0.23.0,<1.0.0)",
     "eval-type-backport (>=0.2.2,<0.3.0); python_version < '3.10'",
 ]
 
 [project.optional-dependencies]
-all = ["fastapi-cli>=0.0.6"]
+all = ["fastapi-cli>=0.0.7"]
 
 [project.scripts]
 fastcdn = "fastapi_cdn_host:cli.main"
@@ -30,14 +30,14 @@ requires-poetry = ">=2.0"
 python = ">=3.9,<4.0"
 
 [tool.poetry.group.dev.dependencies]
-fastdevcli-slim = {extras=["all"], version="^0.11.6"}
-trio = "^0.28.0"
-fastapi-cli = "^0.0.6"
+fastdevcli-slim = {extras = ["all"], version = "^0.11.7"}
+fastapi-cli = "^0.0.7"
 pre-commit = "^4.1.0"
 asynctor = "^0.6.9"
+trio = "^0.29.0"
 
 [build-system]
-requires = ["poetry-plugin-version>=0.5"]
+requires = ["poetry-plugin-version>=0.5.2"]
 build-backend = "poetry_plugin_version.api"
 
 [tool.mypy]

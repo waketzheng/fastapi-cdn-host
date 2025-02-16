@@ -389,7 +389,7 @@ class CdnHostBuilder:
         redoc = redoc_path + cls.redoc_file
         return AssetUrl(css=css, js=js, redoc=redoc, favicon=favicon_url)
 
-    def mount_local_favicon(self, favicon_url) -> str | None:
+    def mount_local_favicon(self, favicon_url: str | None) -> str | None:
         if favicon_url is not None and favicon_url.startswith("/"):
             filename = favicon_url.lstrip("/")
             favicon_file = Path(filename)
