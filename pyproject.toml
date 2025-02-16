@@ -1,40 +1,44 @@
-[tool.poetry]
+[project]
 name = "fastapi-cdn-host"
-version = "0"  # Managed by poetry-plugin-version with value in fastapi_cdn_host/__init__.py
 description = "Auto choose the fastest cdn host for fastapi project docs."
+authors = [{name="Waket Zheng", email="waketzheng@gmail.com"}]
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.9"
+dynamic = [ "version" ]
+dependencies = [
+    "fastapi (>=0.100.0,<1.0.0)",
+    "httpx (>=0.23.0,<1.0.0)",
+    "eval-type-backport (>=0.2.2,<0.3.0); python_version < '3.10'",
+]
+
+[project.optional-dependencies]
+all = ["fastapi-cli>=0.0.7"]
+
+[project.scripts]
+fastcdn = "fastapi_cdn_host:cli.main"
+
+[project.urls]
 homepage = "https://github.com/waketzheng/fastapi-cdn-host"
 repository = "https://github.com/waketzheng/fastapi-cdn-host.git"
-authors = ["Waket Zheng <waketzheng@gmail.com>"]
-readme = "README.md"
+
+[tool.poetry]
+version = "0"  # Managed by poetry-plugin-version
+requires-poetry = ">=2.0"
 
 [tool.poetry.dependencies]
-python = "^3.8"
-fastapi = {version = ">=0.100"}
-httpx = {version = ">=0.23"}
-fastapi-cli = {version = "^0.0.6", optional = true}
-asyncer = "^0.0.8"
-
-[tool.poetry.extras]
-all = ["fastapi-cli"]
+python = ">=3.9,<4.0"
 
 [tool.poetry.group.dev.dependencies]
-fast-dev-cli = {version=">=0.11.0", python=">=3.10"}
-pre-commit = {version=">=3.7.0", python=">=3.10"}
-asynctor = {version=">=0.6.0", python=">=3.10"}
-ruff = ">=0.7,<1"
-mypy = ">=1.12,<2"
-pytest = ">=8.3,<9"
-coverage = ">=7.6,<8"
-click = ">=8.1,<9"
-bandit = ">=1.7,<2"
-trio = ">=0.26,<0.28"
-fastapi-cli = ">=0.0.5,<1"
-pytest-mock = "^3.14.0"
-
+fastdevcli-slim = {extras = ["all"], version = "^0.11.7"}
+fastapi-cli = "^0.0.7"
+pre-commit = "^4.1.0"
+asynctor = "^0.6.9"
+trio = "^0.29.0"
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["poetry-plugin-version>=0.5.2"]
+build-backend = "poetry_plugin_version.api"
 
 [tool.mypy]
 pretty = true
@@ -44,14 +48,20 @@ check_untyped_defs = true
 
 [tool.ruff.lint]
 extend-select = [
-    "I",  # isort
-    "B",  # flake8-bugbear
+    "I",    # isort
+    "B",    # flake8-bugbear
     "SIM",  # flake8-simplify
+    "C4",   # flake8-comprehensions
+    "FA",     # https://docs.astral.sh/ruff/rules/#flake8-future-annotations-fa
+    "UP",     # https://docs.astral.sh/ruff/rules/#pyupgrade-up
+    "RUF100", # https://docs.astral.sh/ruff/rules/#ruff-specific-rules-ruf
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "test_*.py" = ["E501"]
 "examples/main.py" = ["I001"]
+"scripts/*test.py" = ["E501", "UP028","UP031"]
+"scripts/*.py" = ["UP009","UP032"]
 
 [tool.coverage.run]
 branch = true
@@ -66,12 +76,5 @@ exclude_lines = [
     "if TYPE_CHECKING:",
 ]
 
-[tool.poetry.scripts]
-fastcdn = "fastapi_cdn_host:cli.main"
-
 [tool.bandit]
 exclude_dirs = ["tests", "fastapi_cdn_host/cli.py", "scripts", "examples"]
-
-# pipx inject poetry poetry-plugin-version
-[tool.poetry-plugin-version]
-source = "init"
