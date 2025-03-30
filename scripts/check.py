@@ -15,7 +15,7 @@ import sys
 
 TOOL = ("poetry", "pdm", "uv", "")[0]
 PREPARE = "{0} run ruff --version || {0} install".format(TOOL)
-CMD = "ruff format --check . && ruff check . && dmypy run . && bandit -c pyproject.toml -r ."
+CMD = "ruff format --check && ruff check && mypy . && bandit -c pyproject.toml -r ."
 
 parent = os.path.abspath(os.path.dirname(__file__))
 work_dir = os.path.dirname(parent)

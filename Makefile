@@ -17,7 +17,7 @@ plugin:
 	@pipx inject poetry poetry-plugin-version
 
 deps:
-	@poetry install
+	@poetry install --all-extras --all-groups
 
 _check:
 	./scripts/check.py
@@ -36,6 +36,5 @@ _style:
 style: deps _style
 
 _build:
-	rm -fR dist/
-	poetry build
+	poetry build --clean
 build: deps _build

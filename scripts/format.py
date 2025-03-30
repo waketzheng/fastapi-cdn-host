@@ -13,7 +13,7 @@ import sys
 
 TOOL = ("poetry", "pdm", "uv", "")[0]
 PREPARE = "{0} run ruff --version || {0} install".format(TOOL)
-CMD = "ruff format . && ruff check --fix ."
+CMD = "ruff format && ruff check --fix"
 
 parent = os.path.abspath(os.path.dirname(__file__))
 work_dir = os.path.dirname(parent)
