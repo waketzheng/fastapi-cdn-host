@@ -86,4 +86,4 @@ exclude_lines = [
 ]
 
 [tool.bandit]
-exclude_dirs = ["tests", "fastapi_cdn_host/cli.py", "scripts", "examples"]
+exclude_dirs = ["tests", "fastapi_cdn_host/cli.py", "scripts", "examples", ".venv"]
