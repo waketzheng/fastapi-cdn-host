@@ -11,20 +11,17 @@ help:
 	@echo  "    lint    Auto-formats the code and check type hints"
 
 up:
-	@poetry run fast upgrade
-
-plugin:
-	@pipx inject poetry poetry-plugin-version
+	uv lock --upgrade
 
 deps:
-	@poetry install --all-extras --all-groups
+	uv sync --all-extras --all-groups
 
 _check:
 	./scripts/check.py
 check: deps _build _check
 
 _lint:
-	@poetry run fast lint
+	uv run fast lint
 lint: deps _build _lint
 
 _test:
@@ -36,5 +33,6 @@ _style:
 style: deps _style
 
 _build:
-	poetry build --clean
+	rm -fR dist/
+	uv build --no-python-downloads --verbose
 build: deps _build

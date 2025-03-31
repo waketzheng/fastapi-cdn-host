@@ -13,6 +13,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+cli = ["typer>=0.15.2"]
 all = ["fastapi-cli>=0.0.7"]
 
 [project.scripts]
@@ -22,20 +23,31 @@ fastcdn = "fastapi_cdn_host:cli.main"
 homepage = "https://github.com/waketzheng/fastapi-cdn-host"
 repository = "https://github.com/waketzheng/fastapi-cdn-host.git"
 
-[tool.poetry]
-version = "0"  # Managed by poetry-plugin-version
+[dependency-groups]
+dev = [
+    "fast-dev-cli (>=0.14.0,<1.0.0)",
+    "bandit (>=1.8.3,<2.0.0)",
+    "asynctor (>=0.7.0,<1.0.0)",
+    "trio (>=0.29.0,<1.0.0)",
+    "pytest-mock (>=3.14.0,<4.0.0)",
+    "coveralls (>=4.1.0,<5.0.0)",
+]
 
-[tool.poetry.group.dev.dependencies]
-fast-dev-cli = "^0.14.0"
-bandit = "^1.7.9"
-asynctor = "^0.7.0"
-trio = "^0.29.0"
-pytest-mock = "^3.14.0"
+[tool.uv.sources]
 coveralls = { git = "https://github.com/waketzheng/coveralls-python", branch = "master" }
 
+[tool.pdm]
+version = { source = "file", path = "fastapi_cdn_host/__init__.py" }
+distribution = true
+
+[tool.pdm.build]
+source-includes = [
+    "scripts/*.py",
+]
+
 [build-system]
-requires = ["poetry-plugin-version"]
-build-backend = "poetry_plugin_version.api"
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
 
 [tool.mypy]
 pretty = true

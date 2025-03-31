@@ -33,3 +33,4 @@ archive.zip
 # Backups
 *.bak
 .dmypy.json
+fastapi_cdn_host.egg-info
