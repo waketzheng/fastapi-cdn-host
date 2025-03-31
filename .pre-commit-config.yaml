@@ -1,11 +1,11 @@
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
 default_language_version:
-    python: python3.11
+    python: python3.12
 repos:
-  - repo: git@github.com:pre-commit/pre-commit-hooks
-    # https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0  # Use the ref you want to point at
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    # Run this command to upgrade hooks version: `pre-commit autoupdate`
+    rev: v5.0.0  # Use the ref you want to point at
     hooks:
       - id: check-added-large-files
       - id: check-toml
