@@ -516,8 +516,6 @@ class StaticBuilder:
                 name=name,
             )
             logger.info(f"Auto mount static files to {uri_path} from {static_root}")
-        else:
-            logger.debug(f"Ignore {uri_path=} as it already in app.routes")
         return uri_path
 
     def _generate_asset_urls_from_local_files(
