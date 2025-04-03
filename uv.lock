@@ -378,10 +378,12 @@ cli = [
 ]
 
 [package.dev-dependencies]
+ci = [
+    { name = "coveralls" },
+]
 dev = [
     { name = "asynctor" },
     { name = "bandit" },
-    { name = "coveralls" },
     { name = "fast-dev-cli" },
     { name = "pytest-mock" },
     { name = "trio" },
@@ -398,10 +400,10 @@ requires-dist = [
 provides-extras = ["cli", "all"]
 
 [package.metadata.requires-dev]
+ci = [{ name = "coveralls", git = "https://github.com/waketzheng/coveralls-python?branch=master" }]
 dev = [
     { name = "asynctor", specifier = ">=0.7.0,<1.0.0" },
     { name = "bandit", specifier = ">=1.8.3,<2.0.0" },
-    { name = "coveralls", git = "https://github.com/waketzheng/coveralls-python?branch=master" },
     { name = "fast-dev-cli", specifier = ">=0.14.0,<1.0.0" },
     { name = "pytest-mock", specifier = ">=3.14.0,<4.0.0" },
     { name = "trio", specifier = ">=0.29.0,<1.0.0" },

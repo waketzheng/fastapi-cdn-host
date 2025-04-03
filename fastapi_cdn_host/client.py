@@ -499,17 +499,25 @@ class StaticBuilder:
         return uri_path.rstrip("/") + "/" + p.relative_to(static_root).as_posix()
 
     @staticmethod
-    def auto_mount_static(app: FastAPI, static_root: Path | str, uri_path=None) -> str:
+    def auto_mount_static(
+        app: FastAPI, static_root: Path | str, uri_path=None, check_dir=True
+    ) -> str:
         if uri_path is None:
             uri_path = "/static"
         if all(getattr(r, "path", "") != uri_path for r in app.routes):
             name = uri_path.strip("/")
             app.mount(
                 uri_path,
-                StaticFiles(directory=Path(static_root).resolve(), follow_symlink=True),
+                StaticFiles(
+                    directory=Path(static_root).resolve(),
+                    follow_symlink=True,
+                    check_dir=check_dir,
+                ),
                 name=name,
             )
             logger.info(f"Auto mount static files to {uri_path} from {static_root}")
+        else:
+            logger.debug(f"Ignore {uri_path=} as it already in app.routes")
         return uri_path
 
     def _generate_asset_urls_from_local_files(
@@ -607,3 +615,40 @@ def patch_docs(
 
 
 monkey_patch_for_docs_ui = patch_docs  # For backward compatibility
+
+
+def mount_static(
+    app: FastAPI,
+    static_root: Path | str,
+    uri_path: str | None = None,
+    auto_mkdir: bool = True,
+    check_dir: bool | None = None,
+) -> None:
+    """
+    Mount static file to fastapi's application if uri_path not in its routes
+    :param app: the fastapi application
+    :param static_root: local file path, e.g.: Path(__file__).parent / 'static'
+    :param uri_path: route path, if None, `'/'+Path(static_root).name` will be used
+    :param auto_mkdir: whether create directory if it does not exist
+    :param check_dir: whether check static_root exists when starting server, if None, use value of auto_mkdir
+
+    Example::
+
+    ```
+    import fastapi_cdn_host
+    from fastapi import FastAPI
+
+    app =FastAPI()
+    fastapi_cdn_host.mount_static(app, 'static')
+    ```
+    """
+    static_root = Path(static_root).resolve()
+    if auto_mkdir and not static_root.exists():
+        static_root.mkdir(parents=True)
+    if uri_path is None:
+        uri_path = "/" + static_root.name
+    elif not uri_path.startswith("/"):
+        uri_path = "/" + uri_path
+    if check_dir is None:
+        check_dir = auto_mkdir
+    StaticBuilder.auto_mount_static(app, static_root, uri_path, check_dir=check_dir)

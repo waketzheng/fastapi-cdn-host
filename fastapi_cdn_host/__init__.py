@@ -3,6 +3,7 @@ from .client import (
     CdnHostEnum,
     CdnHostItem,
     monkey_patch_for_docs_ui,
+    mount_static,
     patch_docs,
 )
 from .utils import today_lock, weekday_lock
@@ -19,4 +20,5 @@ __all__ = (
     "patch_docs",
     "today_lock",
     "weekday_lock",
+    "mount_static",
 )
