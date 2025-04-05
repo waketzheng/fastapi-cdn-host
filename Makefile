@@ -1,5 +1,5 @@
 help:
-	@echo  "FastDevCli development makefile"
+	@echo  "Fastapi CDN Host development makefile"
 	@echo
 	@echo  "Usage: make <target>"
 	@echo  "Targets:"
@@ -9,12 +9,13 @@ help:
 	@echo  "    test    Runs all tests"
 	@echo  "    style   Auto-formats the code"
 	@echo  "    lint    Auto-formats the code and check type hints"
+	@echo  "    build   Build wheel and tar file to dist/"
 
 up:
 	uv lock --upgrade
 
 deps:
-	uv sync --all-extras --all-groups
+	uv sync --all-extras --all-groups --frozen
 
 _check:
 	./scripts/check.py
@@ -36,3 +37,12 @@ _build:
 	rm -fR dist/
 	uv build --no-python-downloads --verbose
 build: deps _build
+
+venv:
+ifeq ($(wildcard .venv),)
+	uv venv --python=python3.12 --prompt=fastapi-cdn-host-py3.12
+	$(MAKE) deps
+else
+	@echo './.venv' exists, skip virtual environment creating.
+	uv run python -V
+endif
