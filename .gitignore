@@ -34,3 +34,4 @@ archive.zip
 *.bak
 .dmypy.json
 fastapi_cdn_host.egg-info
+.pdm-python
