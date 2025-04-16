@@ -12,7 +12,7 @@ help:
 	@echo  "    build   Build wheel and tar file to dist/"
 
 up:
-	uv lock --upgrade
+	uv lock --upgrade --verbose
 
 deps:
 	uv sync --all-extras --all-groups --frozen

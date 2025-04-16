@@ -7,12 +7,12 @@ import math
 import os
 import re
 import sys
-from collections.abc import Iterable
+from collections.abc import Awaitable, Callable, Iterable
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from ssl import SSLError
-from typing import Annotated, Any, Callable, Literal, Union, cast, overload
+from typing import Annotated, Any, Literal, TypeVar, Union, cast, overload
 
 import anyio
 import httpx
@@ -23,6 +23,11 @@ from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
 from fastapi.responses import HTMLResponse
 from fastapi.routing import APIRoute, Mount
 from fastapi.staticfiles import StaticFiles
+
+if sys.version_info >= (3, 11):
+    from typing import ParamSpec, TypeVarTuple, Unpack
+else:
+    from typing_extensions import ParamSpec, TypeVarTuple, Unpack
 
 logger = logging.getLogger("fastapi-cdn-host")
 
@@ -40,6 +45,13 @@ CdnHostInfoType = Union[
     tuple[CdnDomainType, Annotated[str, "In case of swagger/redoc has the same path"]],
     StrictCdnHostInfoType,
 ]
+DocsCdnHostType = Union[
+    Path, "CdnHostEnum", str, list[CdnHostInfoType], CdnHostInfoType
+]
+T_Retval = TypeVar("T_Retval")
+PosArgsT = TypeVarTuple("PosArgsT")
+LockFunc = Callable[[Request], Any]
+P = ParamSpec("P")
 
 
 class CdnHostItem:
@@ -90,7 +102,7 @@ class CdnHostItem:
         else:
             shared_path = "/".join(parts[:-1])
             swagger_path = "/" + parts[-1]
-        host = cast(str, scheme) + "://" + cast(str, hostname) + shared_path
+        host = scheme + "://" + hostname + shared_path
         swagger_path = re.sub(r"\d+\.\d+\.\d+", "{version}", swagger_path)
         if self.redoc is None:
             redoc_path = DEFAULT_ASSET_PATH[-1]
@@ -105,6 +117,12 @@ class CdnHostEnum(Enum):
     unpkg = "https://unpkg.com"
     qiniu = "https://cdn.staticfile.org", NORMAL_ASSET_PATH
     cdnjs = "https://cdnjs.cloudflare.com/ajax/libs", NORMAL_ASSET_PATH
+
+    def build_host_info(self) -> StrictCdnHostInfoType:
+        value = self.value
+        if isinstance(value, str):
+            return value, DEFAULT_ASSET_PATH
+        return cast(StrictCdnHostInfoType, value)
 
     @classmethod
     def extend(
@@ -136,9 +154,9 @@ class HttpSniff:
         cls,
         client: httpx.AsyncClient,
         url: str,
-        results: list,
+        results: list[Any],
         index: int,
-        try_cache=False,
+        try_cache: bool = False,
     ) -> None:
         if try_cache and (content := cls.cached.get(url)):
             results[index] = content
@@ -153,7 +171,7 @@ class HttpSniff:
 
     @classmethod
     async def find_fastest_host(
-        cls, urls: list[str], total_seconds=5, loop_interval=0.1
+        cls, urls: list[str], total_seconds: float = 5, loop_interval: float = 0.1
     ) -> str:
         if us := await cls.bulk_fetch(
             urls, loop_interval, total_seconds, return_first_completed=True
@@ -193,7 +211,7 @@ class HttpSniff:
         get_content: bool = False,
     ) -> list[str] | list[bytes]:
         total = len(urls)
-        results = [None] * total
+        results: list[bytes | None] = [None] * total
         client = httpx.AsyncClient(timeout=total_seconds, follow_redirects=True)
         await client.__aenter__()
         async with anyio.create_task_group() as tg:
@@ -214,9 +232,9 @@ class HttpSniff:
     async def get_fast_hosts(
         cls,
         urls: list[str],
-        wait_seconds=0.8,
-        total_seconds=3,
-        return_first_completed=False,
+        wait_seconds: float = 0.8,
+        total_seconds: float = 3,
+        return_first_completed: bool = False,
     ) -> list[str]:
         return await cls.bulk_fetch(
             urls, wait_seconds, total_seconds, return_first_completed
@@ -225,13 +243,17 @@ class HttpSniff:
 
 class CdnHostBuilder:
     swagger_ui_version = "5"
-    swagger_ui_full_version = "5.17.14"
+    swagger_ui_full_version = "5.21.0"
     swagger_files = {"css": "swagger-ui.css", "js": "swagger-ui-bundle.js"}
     redoc_file = "redoc.standalone.js"
     default_cache_file = "~/.cache/fastapi-cdn-host/urls.txt"
 
     def __init__(
-        self, app=None, docs_cdn_host=None, favicon_url=None, cache=None
+        self,
+        app: FastAPI | None = None,
+        docs_cdn_host: DocsCdnHostType | None = None,
+        favicon_url: str | None = None,
+        cache: bool | None = None,
     ) -> None:
         self.app = app
         self.docs_cdn_host = docs_cdn_host
@@ -239,12 +261,16 @@ class CdnHostBuilder:
         self._cache = cache
 
     @staticmethod
-    def run_async(async_func, *args) -> Any:
+    def run_async(
+        async_func: Callable[[Unpack[PosArgsT]], Awaitable[T_Retval]],
+        *args: Unpack[PosArgsT],
+    ) -> T_Retval:
         """Run async function in worker thread and get the result of it"""
-        result = [None]
+        result: list[T_Retval] = []
 
-        async def runner():
-            result[0] = await async_func(*args)
+        async def runner() -> None:
+            res = await async_func(*args)
+            result.append(res)
 
         with from_thread.start_blocking_portal() as portal:
             portal.call(runner)
@@ -254,44 +280,51 @@ class CdnHostBuilder:
     def run(self) -> AssetUrl:
         if (favicon := self.favicon_url) is not None:
             favicon = self.mount_local_favicon(favicon)
-        static_builder = StaticBuilder(self.app, favicon_url=favicon)
-        if isinstance(cdn_host := self.docs_cdn_host, Path):
-            static_builder.static_root = self.docs_cdn_host
-        elif cdn_host is not None:
-            if isinstance(cdn_host, CdnHostEnum):
-                cdn_host = cdn_host.value
-            if isinstance(cdn_host, str):
-                return self.build_asset_url(cdn_host, favicon_url=favicon)
-            if isinstance(cdn_host, list) and isinstance(cdn_host[0], tuple):
-                return self._cache_wrap(self.run_async)(
-                    self.sniff_the_fastest, favicon, cdn_host
-                )
-            cdn_host, asset_path = cdn_host
-            if isinstance(asset_path, str):
-                asset_path = (asset_path, asset_path)
-            return self.build_asset_url(cdn_host, asset_path, favicon_url=favicon)
-        if urls := static_builder.find():
-            return urls
+        if self.app is not None:
+            static_builder = StaticBuilder(self.app, favicon_url=favicon)
+            if (cdn_host := self.docs_cdn_host) is not None:
+                if isinstance(cdn_host, Path):
+                    static_builder.static_root = cdn_host
+                else:
+                    if isinstance(cdn_host, str):
+                        return self.build_asset_url(cdn_host, favicon_url=favicon)
+                    if isinstance(cdn_host, list) and isinstance(cdn_host[0], tuple):
+                        return self._cache_wrap(self.run_async)(
+                            self.sniff_the_fastest, favicon, cdn_host
+                        )
+                    if isinstance(cdn_host, CdnHostEnum):
+                        cdn_host = cdn_host.build_host_info()
+                    cdn_host, asset_path = cdn_host
+                    if isinstance(asset_path, str):
+                        asset_path = (asset_path, asset_path)
+                    return self.build_asset_url(
+                        cast(str, cdn_host),
+                        cast(tuple[str, str], asset_path),
+                        favicon_url=favicon,
+                    )
+            if urls := static_builder.find():
+                return urls
         return self._cache_wrap(self.run_async)(self.sniff_the_fastest, favicon)
 
-    def get_cache_file(self) -> tuple[bool, Path]:
-        file = Path(os.path.expanduser(self.default_cache_file))
+    @classmethod
+    def get_cache_file(cls) -> tuple[bool, Path]:
+        file = Path(os.path.expanduser(cls.default_cache_file))
         try:
             exists = file.exists()
         except PermissionError:
             tmp_dir = Path("/tmp")  # nosec:B108
             if sys.platform == "win32":
                 tmp_dir = Path(os.getenv("temp", "."))  # NOQA:SIM112
-            file = tmp_dir / self.default_cache_file.replace("~/", "")
+            file = tmp_dir / cls.default_cache_file.replace("~/", "")
             exists = file.exists()
         return exists, file
 
-    def _cache_wrap(self, func: Callable) -> Callable[..., AssetUrl]:
+    def _cache_wrap(self, func: Callable[P, AssetUrl]) -> Callable[P, AssetUrl]:
         if not self._cache:
             return func
 
         @functools.wraps(func)
-        def wrapper(*args, **kw):
+        def wrapper(*args: P.args, **kw: P.kwargs) -> AssetUrl:
             already_cached, file = self.get_cache_file()
             if already_cached:
                 lines = file.read_text("utf8").splitlines()
@@ -319,7 +352,7 @@ class CdnHostBuilder:
         return wrapper
 
     @staticmethod
-    def fill_root_path(urls, root):
+    def fill_root_path(urls: AssetUrl, root: str) -> AssetUrl:
         if root:
             for attr in ("js", "css", "redoc", "favicon"):
                 if (
@@ -342,15 +375,15 @@ class CdnHostBuilder:
     def build_race_data(
         cls,
         competitors: Iterable[CdnHostInfoType | CdnHostEnum],
-    ) -> tuple[list[str], list[tuple]]:
+    ) -> tuple[list[str], list[StrictCdnHostInfoType]]:
         css_urls: list[str] = []
-        they: list[tuple] = []
+        they: list[StrictCdnHostInfoType] = []
         for cdn_host in competitors:
             if isinstance(cdn_host, CdnHostEnum):
                 cdn_host = cdn_host.value
             if isinstance(cdn_host, str):
                 host = cdn_host
-                asset_path: str | CdnPathInfoType = DEFAULT_ASSET_PATH
+                asset_path: CdnPathInfoType = DEFAULT_ASSET_PATH
             else:
                 host, asset_path = cast(StrictCdnHostInfoType, cdn_host)
             they.append((host, asset_path))
@@ -361,7 +394,9 @@ class CdnHostBuilder:
 
     @classmethod
     async def sniff_the_fastest(
-        cls, favicon_url=None, choices=tuple(CdnHostEnum)
+        cls,
+        favicon_url: str | None = None,
+        choices: Iterable[CdnHostInfoType | CdnHostEnum] = tuple(CdnHostEnum),
     ) -> AssetUrl:
         css_urls, they = cls.build_race_data(choices)
         fast_css_url = await HttpSniff.find_fastest_host(css_urls)
@@ -393,7 +428,11 @@ class CdnHostBuilder:
         if favicon_url is not None and favicon_url.startswith("/"):
             filename = favicon_url.lstrip("/")
             favicon_file = Path(filename)
-            if favicon_file.exists() and favicon_file.parent.is_dir():
+            if (
+                favicon_file.exists()
+                and favicon_file.parent.is_dir()
+                and self.app is not None
+            ):
                 static_root = Path(filename.split("/")[0])
                 uri_path = StaticBuilder.auto_mount_static(
                     self.app, static_root, "/" + static_root.name
@@ -409,18 +448,20 @@ class DocsBuilder:
         self.index = index
 
     @staticmethod
-    async def try_request_lock(req: Request, lock: Callable | None = None) -> None:
+    async def try_request_lock(req: Request, lock: LockFunc | None = None) -> None:
         if lock is not None:
             if inspect.iscoroutinefunction(lock):
                 await lock(req)
             else:
                 lock(req)
 
-    def update_entrypoint(self, func, app: FastAPI, url: str) -> None:
+    def update_entrypoint(
+        self, func: Callable[..., Any], app: FastAPI, url: str
+    ) -> None:
         app.routes[self.index] = APIRoute(url, func, include_in_schema=False)
 
     def update_docs_entrypoint(
-        self, urls: AssetUrl, app: FastAPI, url: str, lock=None
+        self, urls: AssetUrl, app: FastAPI, url: str, lock: LockFunc | None = None
     ) -> None:
         async def swagger_ui_html(req: Request) -> HTMLResponse:
             await self.try_request_lock(req, lock)
@@ -448,7 +489,7 @@ class DocsBuilder:
         self.update_entrypoint(swagger_ui_html, app, url)
 
     def update_redoc_entrypoint(
-        self, urls: AssetUrl, app: FastAPI, url: str, lock=None
+        self, urls: AssetUrl, app: FastAPI, url: str, lock: LockFunc | None = None
     ) -> None:
         async def redoc_html(req: Request) -> HTMLResponse:
             await self.try_request_lock(req, lock)
@@ -467,19 +508,23 @@ class DocsBuilder:
 class StaticBuilder:
     def __init__(
         self,
-        app,
+        app: FastAPI,
         static_root: Path | None = None,
         favicon_url: str | None = None,
-    ):
+    ) -> None:
         self.app = app
         self.static_root = static_root
         self.favicon_url = favicon_url
 
-    def find(self):
+    def find(self) -> AssetUrl | None:
         return self.detect_local_file(self.app, self.static_root, self.favicon_url)
 
     def _maybe(
-        self, static_root: Path, mount=None, app=None, favicon=None
+        self,
+        static_root: Path,
+        mount: Mount | None = None,
+        app: FastAPI | None = None,
+        favicon: str | None = None,
     ) -> AssetUrl | None:
         if gs := list(static_root.rglob("swagger-ui*.css")):
             logger.info(f"Using local files in {static_root} to serve docs assets.")
@@ -500,7 +545,10 @@ class StaticBuilder:
 
     @staticmethod
     def auto_mount_static(
-        app: FastAPI, static_root: Path | str, uri_path=None, check_dir=True
+        app: FastAPI,
+        static_root: Path | str,
+        uri_path: str | None = None,
+        check_dir: bool = True,
     ) -> str:
         if uri_path is None:
             uri_path = "/static"
@@ -519,9 +567,21 @@ class StaticBuilder:
         return uri_path
 
     def _generate_asset_urls_from_local_files(
-        self, gs, mount=None, app=None, static_root=None, favicon=None
+        self,
+        gs: list[Path],
+        mount: Mount | None = None,
+        app: FastAPI | None = None,
+        static_root: Path | None = None,
+        favicon: str | None = None,
     ) -> AssetUrl:
-        uri_path = mount.path if mount else self.auto_mount_static(app, static_root)
+        if static_root is None:
+            static_root = Path("static")
+        if mount is not None:
+            uri_path = mount.path
+        elif app is not None:
+            uri_path = self.auto_mount_static(app, static_root)
+        else:
+            raise RuntimeError("Argument 'mount' and 'app' can't not both be None")
         css_file = self.get_latest_one(gs)
         js_file = (
             self.get_latest_one(_js)
@@ -552,10 +612,10 @@ class StaticBuilder:
 
     def detect_local_file(
         self,
-        app,
+        app: FastAPI,
         static_root: Path | None = None,
         favicon_url: str | None = None,
-    ):
+    ) -> AssetUrl | None:
         if static_root is not None:
             return self._maybe(static_root, app=app)
         if mounts := [r for r in app.routes if isinstance(r, Mount)]:
@@ -566,6 +626,7 @@ class StaticBuilder:
         else:
             if (static_root := Path("static")).exists():
                 return self._maybe(static_root, app=app, favicon=favicon_url)
+        return None
 
 
 def patch_docs(
@@ -577,10 +638,10 @@ def patch_docs(
     | AssetUrl
     | None = None,
     favicon_url: str | None = None,
-    lock: Callable[[Request], Any] | None = None,
+    lock: LockFunc | None = None,
     cache: bool = True,
     *,
-    docs_cdn_host=None,  # For backward compatibility
+    docs_cdn_host: DocsCdnHostType | None = None,  # For backward compatibility
 ) -> None:
     """Use local static files or the faster CDN host for docs asset(swagger-ui)
 
