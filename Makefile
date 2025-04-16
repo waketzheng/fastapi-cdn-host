@@ -11,7 +11,7 @@ help:
 	@echo  "    lint    Auto-formats the code and check type hints"
 
 up:
-	uv lock --upgrade
+	uv lock --upgrade --verbose
 
 deps:
 	uv sync --all-extras --all-groups

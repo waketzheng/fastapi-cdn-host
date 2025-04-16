@@ -4,6 +4,7 @@ from __future__ import annotations
 import os
 import shlex
 import subprocess  # nosec:B404
+import sys
 from collections.abc import AsyncGenerator, Generator
 from contextlib import asynccontextmanager, contextmanager
 from datetime import datetime
@@ -200,9 +201,15 @@ def dev(
     elif str(path) == "cache":
         exists, cache_path = CdnHostBuilder.get_cache_file()
         if exists:
-            typer.echo(
-                f"Content of cache file({cache_path}):\n{cache_path.read_text()}"
-            )
+            if "--remove" in sys.argv:
+                cache_path.unlink()
+                typer.secho(
+                    f"Success to remove cache file({cache_path})", fg=typer.colors.GREEN
+                )
+            else:
+                typer.echo(
+                    f"Content of cache file({cache_path}):\n{cache_path.read_text()}"
+                )
         else:
             typer.echo("Cache not create yet.")
         return

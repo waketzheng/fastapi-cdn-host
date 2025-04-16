@@ -25,9 +25,9 @@ repository = "https://github.com/waketzheng/fastapi-cdn-host.git"
 
 [dependency-groups]
 dev = [
-    "fast-dev-cli (>=0.14.0,<1.0.0)",
+    "fast-dev-cli (>=0.14.2,<1.0.0)",
     "bandit (>=1.8.3,<2.0.0)",
-    "asynctor (>=0.7.0,<1.0.0)",
+    "asynctor (>=0.7.2,<1.0.0)",
     "trio (>=0.29.0,<1.0.0)",
     "pytest-mock (>=3.14.0,<4.0.0)",
 ]
@@ -36,7 +36,7 @@ ci = [
 ]
 
 [tool.uv.sources]
-coveralls = { git = "https://github.com/waketzheng/coveralls-python", branch = "master" }
+coveralls = { git = "https://github.com/waketzheng/coveralls-python", rev = "4.1.1" }
 
 [tool.pdm]
 version = { source = "file", path = "fastapi_cdn_host/__init__.py" }
