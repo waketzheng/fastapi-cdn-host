@@ -274,15 +274,16 @@ class CdnHostBuilder:
             return urls
         return self._cache_wrap(self.run_async)(self.sniff_the_fastest, favicon)
 
-    def get_cache_file(self) -> tuple[bool, Path]:
-        file = Path(os.path.expanduser(self.default_cache_file))
+    @classmethod
+    def get_cache_file(cls) -> tuple[bool, Path]:
+        file = Path(os.path.expanduser(cls.default_cache_file))
         try:
             exists = file.exists()
         except PermissionError:
             tmp_dir = Path("/tmp")  # nosec:B108
             if sys.platform == "win32":
                 tmp_dir = Path(os.getenv("temp", "."))  # NOQA:SIM112
-            file = tmp_dir / self.default_cache_file.replace("~/", "")
+            file = tmp_dir / cls.default_cache_file.replace("~/", "")
             exists = file.exists()
         return exists, file
 

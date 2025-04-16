@@ -197,6 +197,15 @@ def dev(
     if str(path) == "offline":
         anyio.run(download_offline_assets, "static")
         return
+    elif str(path) == "cache":
+        exists, cache_path = CdnHostBuilder.get_cache_file()
+        if exists:
+            typer.echo(
+                f"Content of cache file({cache_path}):\n{cache_path.read_text()}"
+            )
+        else:
+            typer.echo("Cache not create yet.")
+        return
     with patch_app(path, remove) as file:
         mode = "run" if prod else "dev"
         cmd = f"PYTHONPATH=. fastapi {mode} {file}"
