@@ -14,7 +14,7 @@ up:
 	uv lock --upgrade --verbose
 
 deps:
-	uv sync --all-extras --all-groups
+	uv sync --all-extras --all-groups --frozen
 
 _check:
 	./scripts/check.py

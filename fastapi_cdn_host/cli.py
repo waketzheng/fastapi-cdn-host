@@ -9,12 +9,12 @@ from collections.abc import AsyncGenerator, Generator
 from contextlib import asynccontextmanager, contextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 import anyio
 import typer
 from rich import print
-from rich.progress import Progress, SpinnerColumn
+from rich.progress import Progress, SpinnerColumn, TaskID
 
 from .client import CdnHostBuilder, HttpSniff
 
@@ -69,7 +69,7 @@ def write_app(dest: Path, from_path: str | Path) -> None:
 
 
 @contextmanager
-def patch_app(path: str | Path, remove=True) -> Generator[Path, None, None]:
+def patch_app(path: str | Path, remove: bool = True) -> Generator[Path, None, None]:
     ident = f"{datetime.now():%Y%m%d%H%M%S}"
     app_file = Path(f"app_{ident}.py")
     write_app(app_file, path)
@@ -82,7 +82,7 @@ def patch_app(path: str | Path, remove=True) -> Generator[Path, None, None]:
 
 
 @asynccontextmanager
-async def percentbar(msg: str, **kwargs) -> AsyncGenerator[None, None]:
+async def percentbar(msg: str, **kwargs: Any) -> AsyncGenerator[None, None]:
     """Progressbar with custom font color
 
     :param msg: prompt message.
@@ -91,7 +91,7 @@ async def percentbar(msg: str, **kwargs) -> AsyncGenerator[None, None]:
     color = kwargs.pop("color", "")
     total = seconds * 100
 
-    async def play(progress, task) -> None:
+    async def play(progress: Progress, task: TaskID) -> None:
         expected, threshold = 1 / 2, 0.8
         cost = seconds * expected
         quick = int(total * threshold)
@@ -107,10 +107,10 @@ async def percentbar(msg: str, **kwargs) -> AsyncGenerator[None, None]:
             progress.advance(task)
 
     with Progress(**kwargs) as p:
+        prompt = f"{msg}:"
         if color:
-            t = p.add_task(f"[{color}]{msg}:", total=total)
-        else:
-            t = p.add_task(f"{msg}:", total=total)
+            prompt = f"[{color}]" + prompt
+        t = p.add_task(prompt, total=total)
         async with anyio.create_task_group() as tg:
             tg.start_soon(play, p, t)
             yield
@@ -119,7 +119,9 @@ async def percentbar(msg: str, **kwargs) -> AsyncGenerator[None, None]:
 
 
 @contextmanager
-def spinnerbar(msg, color: str | None = None, **kwargs) -> Generator[None, None, None]:
+def spinnerbar(
+    msg: str, color: str | None = None, **kwargs: Any
+) -> Generator[None, None, None]:
     kwargs.setdefault("transient", True)
     with Progress(
         SpinnerColumn(), *Progress.get_default_columns(), **kwargs
@@ -131,7 +133,7 @@ def spinnerbar(msg, color: str | None = None, **kwargs) -> Generator[None, None,
         yield
 
 
-async def download_offline_assets(dirname: str, timeout=30) -> None:
+async def download_offline_assets(dirname: str, timeout: float = 30) -> None:
     cwd = await anyio.Path.cwd()
     static_root = cwd / dirname
     if not await static_root.exists():
@@ -158,6 +160,25 @@ async def download_offline_assets(dirname: str, timeout=30) -> None:
                 size = await path.write_bytes(content)
                 print(f"Write to {path} with {size=}")
     print("Done.")
+
+
+def handle_cache() -> None:
+    exists, cache_path = CdnHostBuilder.get_cache_file()
+    if not exists:
+        typer.echo("Cache not create yet.")
+        return
+    if "--remove" in sys.argv:
+        cache_path.unlink()
+        typer.secho(
+            f"Success to remove cache file({cache_path})", fg=typer.colors.GREEN
+        )
+    else:
+        typer.echo(f"Content of cache file({cache_path}):\n{cache_path.read_text()}")
+        if "--reload" in sys.argv:
+            cache_path.unlink()
+            with spinnerbar("Refreshing cache", color="yellow"):
+                CdnHostBuilder(cache=True).run()
+            typer.echo(f"Cache file updated:\n{cache_path.read_text()}")
 
 
 @app.command()
@@ -194,30 +215,24 @@ def dev(
         bool,
         typer.Option(help="Whether enable production mode."),
     ] = False,
-):
+    reload: Annotated[
+        bool,
+        typer.Option(help="Enable auto-reload of the server when (code) files change."),
+    ] = True,
+) -> None:
     if str(path) == "offline":
         anyio.run(download_offline_assets, "static")
         return
     elif str(path) == "cache":
-        exists, cache_path = CdnHostBuilder.get_cache_file()
-        if exists:
-            if "--remove" in sys.argv:
-                cache_path.unlink()
-                typer.secho(
-                    f"Success to remove cache file({cache_path})", fg=typer.colors.GREEN
-                )
-            else:
-                typer.echo(
-                    f"Content of cache file({cache_path}):\n{cache_path.read_text()}"
-                )
-        else:
-            typer.echo("Cache not create yet.")
+        handle_cache()
         return
     with patch_app(path, remove) as file:
         mode = "run" if prod else "dev"
         cmd = f"PYTHONPATH=. fastapi {mode} {file}"
         if port:
             cmd += f" --{port=}"
+        if not reload and not prod:
+            cmd += " --no-reload"
         run_shell(cmd)
 
 

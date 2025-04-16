@@ -59,7 +59,7 @@ async def test_docs(client: AsyncClient):  # nosec
             f"https://raw.githubusercontent.com/swagger-api/swagger-ui/v{SWAGGER_VERSION}/dist/swagger-ui.css"
         ),
     )
-    urls = await CdnHostBuilder.sniff_the_fastest(choices)
+    urls = await CdnHostBuilder.sniff_the_fastest(choices=choices)
     url_list = await HttpSniff.get_fast_hosts(
         CdnHostBuilder.build_race_data(list(choices))[0]
     )
