@@ -27,26 +27,16 @@ wheels = [
 ]
 
 [[package]]
-name = "async-timeout"
-version = "5.0.1"
-source = { registry = "https://mirrors.cloud.tencent.com/pypi/simple/" }
-sdist = { url = "https://mirrors.cloud.tencent.com/pypi/packages/a5/ae/136395dfbfe00dfc94da3f3e136d0b13f394cba8f4841120e34226265780/async_timeout-5.0.1.tar.gz", hash = "sha256:d9321a7a3d5a6a5e187e824d2fa0793ce379a202935782d555d6e9d2735677d3" }
-wheels = [
-    { url = "https://mirrors.cloud.tencent.com/pypi/packages/fe/ba/e2081de779ca30d473f21f5b30e0e737c438205440784c7dfc81efc2b029/async_timeout-5.0.1-py3-none-any.whl", hash = "sha256:39e3809566ff85354557ec2398b55e096c8364bacac9405a7a1fa429e77fe76c" },
-]
-
-[[package]]
 name = "asynctor"
-version = "0.7.2"
+version = "0.8.0"
 source = { registry = "https://mirrors.cloud.tencent.com/pypi/simple/" }
 dependencies = [
     { name = "anyio" },
     { name = "eval-type-backport", marker = "python_full_version < '3.10'" },
-    { name = "redis" },
 ]
-sdist = { url = "https://mirrors.cloud.tencent.com/pypi/packages/8d/94/3ca196b3c9d8f637423e6cd19900e2b333c54858c192c0e0027c0e262e74/asynctor-0.7.2.tar.gz", hash = "sha256:a4b2be0d7c50c2cf13c817b54ecb8cc04255bda2f689627cb6b0db1d529e9bdb" }
+sdist = { url = "https://mirrors.cloud.tencent.com/pypi/packages/bc/03/1f8a81cc145f26495e64ee0f8336291eb161f5e5395dd914dc9405fec6cf/asynctor-0.8.0.tar.gz", hash = "sha256:338edd6e6bfe84254d3ca95de970edb60c37b3e08ca6d13688d035d8798be7cc" }
 wheels = [
-    { url = "https://mirrors.cloud.tencent.com/pypi/packages/84/aa/9ef2fd3639ffd1c5ba18caf4f74cf5015217dd3ca95d2843eca748d31e4e/asynctor-0.7.2-py3-none-any.whl", hash = "sha256:c354a1d447879b18c20713f2dca70049077eddc4b8aff1bdde314a077b61ef4b" },
+    { url = "https://mirrors.cloud.tencent.com/pypi/packages/eb/fe/7a804fbb4c00fd434c715d4d87316546b964042b3bdb7ab7067729cbe018/asynctor-0.8.0-py3-none-any.whl", hash = "sha256:906f0fdac74150fe827c0b48296c5e7da3c1485469d8794361868dd90c5900fb" },
 ]
 
 [[package]]
@@ -329,7 +319,7 @@ provides-extras = ["cli", "all"]
 [package.metadata.requires-dev]
 ci = [{ name = "coveralls", git = "https://github.com/waketzheng/coveralls-python?rev=4.1.1" }]
 dev = [
-    { name = "asynctor", specifier = ">=0.7.2,<1.0.0" },
+    { name = "asynctor", specifier = ">=0.8.0,<1.0.0" },
     { name = "bandit", specifier = ">=1.8.3,<2.0.0" },
     { name = "fast-dev-cli", specifier = ">=0.14.2,<1.0.0" },
     { name = "pytest-mock", specifier = ">=3.14.0,<4.0.0" },
@@ -798,18 +788,6 @@ wheels = [
 ]
 
 [[package]]
-name = "redis"
-version = "6.0.0"
-source = { registry = "https://mirrors.cloud.tencent.com/pypi/simple/" }
-dependencies = [
-    { name = "async-timeout", marker = "python_full_version < '3.11.3'" },
-]
-sdist = { url = "https://mirrors.cloud.tencent.com/pypi/packages/79/12/dffaaa4374b8d5f3b7ff5c40025c9db387e06264302d5a9da6043cd84e1f/redis-6.0.0.tar.gz", hash = "sha256:5446780d2425b787ed89c91ddbfa1be6d32370a636c8fdb687f11b1c26c1fa88" }
-wheels = [
-    { url = "https://mirrors.cloud.tencent.com/pypi/packages/08/c8/68081c9d3531f7b2a4d663326b96a9dcbc2aef47df3c6b5c38dea90dff02/redis-6.0.0-py3-none-any.whl", hash = "sha256:a2e040aee2cdd947be1fa3a32e35a956cd839cc4c1dbbe4b2cdee5b9623fd27c" },
-]
-
-[[package]]
 name = "rich"
 version = "14.0.0"
 source = { registry = "https://mirrors.cloud.tencent.com/pypi/simple/" }
@@ -825,25 +803,25 @@ wheels = [
 
 [[package]]
 name = "rich-toolkit"
-version = "0.14.4"
+version = "0.14.5"
 source = { registry = "https://mirrors.cloud.tencent.com/pypi/simple/" }
 dependencies = [
     { name = "click" },
     { name = "rich" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://mirrors.cloud.tencent.com/pypi/packages/e1/33/18332e1359803ae6407a1e605a6bdb253a426ffe931555f1299f9e39eece/rich_toolkit-0.14.4.tar.gz", hash = "sha256:db256cf45165cae381c9bbf3b48a0fd4d99a07c80155cc655c80212a62e28fe1" }
+sdist = { url = "https://mirrors.cloud.tencent.com/pypi/packages/d1/24/f0678256fbe0643b4ba00a460f4b736ef07042e459f8d4087c8b7011ab81/rich_toolkit-0.14.5.tar.gz", hash = "sha256:1cb7a3fa0bdbf35793460708664f3f797e8b18cedec9cd41a7e6125e4bc6272b" }
 wheels = [
-    { url = "https://mirrors.cloud.tencent.com/pypi/packages/44/48/c6d43d4c56c45c0171c771b2b73deeec493efb57795b651319201e7c4638/rich_toolkit-0.14.4-py3-none-any.whl", hash = "sha256:cc71ebee83eaa122d8e42882408bc5a4bf0240bbf1e368811ee56d249b3d742a" },
+    { url = "https://mirrors.cloud.tencent.com/pypi/packages/d1/13/621cc551b72de51e6e5cb7cfc510a141e1858bd380ee3c8108fbda4a6be0/rich_toolkit-0.14.5-py3-none-any.whl", hash = "sha256:2fe9846ecbf5d0cdf236c7f43452b68d9da1436a81594aba6b79b3c48b05703b" },
 ]
 
 [[package]]
 name = "setuptools"
-version = "80.1.0"
+version = "80.3.1"
 source = { registry = "https://mirrors.cloud.tencent.com/pypi/simple/" }
-sdist = { url = "https://mirrors.cloud.tencent.com/pypi/packages/aa/b2/bd26ed086b842b68c8fe9aac380ad7e5118cf84fa7abd45bb059a88368a8/setuptools-80.1.0.tar.gz", hash = "sha256:2e308396e1d83de287ada2c2fd6e64286008fe6aca5008e0b6a8cb0e2c86eedd" }
+sdist = { url = "https://mirrors.cloud.tencent.com/pypi/packages/70/dc/3976b322de9d2e87ed0007cf04cc7553969b6c7b3f48a565d0333748fbcd/setuptools-80.3.1.tar.gz", hash = "sha256:31e2c58dbb67c99c289f51c16d899afedae292b978f8051efaf6262d8212f927" }
 wheels = [
-    { url = "https://mirrors.cloud.tencent.com/pypi/packages/8b/f6/126c9309c8fe93e5d6bb850593cd58d591daf2da45cc78b61e48d8d95879/setuptools-80.1.0-py3-none-any.whl", hash = "sha256:ea0e7655c05b74819f82e76e11a85b31779fee7c4969e82f72bab0664e8317e4" },
+    { url = "https://mirrors.cloud.tencent.com/pypi/packages/53/7e/5d8af3317ddbf9519b687bd1c39d8737fde07d97f54df65553faca5cffb1/setuptools-80.3.1-py3-none-any.whl", hash = "sha256:ea8e00d7992054c4c592aeb892f6ad51fe1b4d90cc6947cc45c45717c40ec537" },
 ]
 
 [[package]]
