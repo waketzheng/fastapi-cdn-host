@@ -13,7 +13,9 @@ BASE_DIR = Path(__file__).parent.resolve()
 STATIC_ROOT = BASE_DIR / "static"
 # Uncomment the following the lines to auto download assets:
 # if not STATIC_ROOT.exists():
-#     subprocess.run(["fastcdn", "offline"])
+#     import anyio
+#     from fastapi_cdn_host.cli import download_offline_assets
+#     anyio.run(download_offline_assets, STATIC_ROOT)
 fastapi_cdn_host.patch_docs(app, STATIC_ROOT)
 
 

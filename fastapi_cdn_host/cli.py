@@ -133,9 +133,11 @@ def spinnerbar(
         yield
 
 
-async def download_offline_assets(dirname: str, timeout: float = 30) -> None:
+async def download_offline_assets(dirname: str | Path, timeout: float = 30) -> None:
     cwd = await anyio.Path.cwd()
-    static_root = cwd / dirname
+    static_root = (
+        cwd / dirname if isinstance(dirname, str) else anyio.Path(dirname.resolve())
+    )
     if not await static_root.exists():
         await static_root.mkdir(parents=True)
         print(f"Directory {static_root} created.")
