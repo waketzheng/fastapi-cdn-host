@@ -35,3 +35,4 @@ archive.zip
 .dmypy.json
 fastapi_cdn_host.egg-info
 .pdm-python
+.venv

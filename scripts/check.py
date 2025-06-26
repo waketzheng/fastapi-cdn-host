@@ -12,8 +12,19 @@ Usage::
 
 import os
 import sys
+from enum import Enum
 
-TOOL = ("poetry", "pdm", "uv", "")[2]
+
+class Tools(Enum):
+    poetry = "poetry"
+    pdm = "pdm"
+    uv = "uv"
+    none = ""
+
+
+_tool = Tools.pdm
+
+TOOL = getattr(_tool, "value", str(_tool))
 PREPARE = "{0} run ruff --version || {0} install".format(TOOL)
 CMD = "ruff format --check && ruff check && mypy . && bandit -c pyproject.toml -r ."
 
