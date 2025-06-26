@@ -4,6 +4,8 @@ help:
 	@echo  "Usage: make <target>"
 	@echo  "Targets:"
 	@echo  "    up      Updates dev/test dependencies"
+	@echo  "    lock    Refresh lock file"
+	@echo  "    show    Show dependencies in tree graph"
 	@echo  "    deps    Ensure dev/test dependencies are installed"
 	@echo  "    check   Checks that build is sane"
 	@echo  "    test    Runs all tests"
@@ -12,17 +14,24 @@ help:
 	@echo  "    build   Build wheel and tar file to dist/"
 
 up:
-	uv lock --upgrade --verbose
+	pdm self update --verbose
+	pdm update
+
+lock:
+	pdm lock --group :all --strategy inherit_metadata
+
+show:
+	pdm list --tree $(options)
 
 deps:
-	uv sync --all-extras --all-groups --frozen
+	pdm install --verbose --group :all --frozen
 
 _check:
 	./scripts/check.py
 check: deps _build _check
 
 _lint:
-	uv run fast lint
+	pdm run fast lint
 lint: deps _build _lint
 
 _test:
@@ -35,14 +44,14 @@ style: deps _style
 
 _build:
 	rm -fR dist/
-	uv build --no-python-downloads --verbose
+	pdm build --verbose
 build: deps _build
 
 venv:
 ifeq ($(wildcard .venv),)
-	uv venv --python=python3.12 --prompt=fastapi-cdn-host-py3.12
+	pdm venv create 3.12
 	$(MAKE) deps
 else
 	@echo './.venv' exists, skip virtual environment creating.
-	uv run python -V
+	pdm run python -V
 endif

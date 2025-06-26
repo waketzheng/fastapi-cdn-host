@@ -5,9 +5,20 @@ import shlex
 import subprocess
 import sys
 import time
+from enum import Enum
 from pathlib import Path
 
-TOOL = ("poetry", "pdm", "uv", "")[2]
+
+class Tools(Enum):
+    poetry = "poetry"
+    pdm = "pdm"
+    uv = "uv"
+    none = ""
+
+
+_tool = Tools.pdm
+
+TOOL = getattr(_tool, "value", str(_tool))
 work_dir = Path(__file__).parent.resolve().parent
 if Path.cwd() != work_dir:
     os.chdir(str(work_dir))
