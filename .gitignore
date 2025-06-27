@@ -36,3 +36,4 @@ archive.zip
 fastapi_cdn_host.egg-info
 .pdm-python
 .venv
+tests/sub_app/static
