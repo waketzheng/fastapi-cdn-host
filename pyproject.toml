@@ -30,15 +30,8 @@ dev = [
     "asynctor (>=0.8.0,<1.0.0)",
     "trio (>=0.29.0,<1.0.0)",
     "pytest-mock (>=3.14.0,<4.0.0)",
-]
-
-[tool.pdm]
-version = { source = "file", path = "fastapi_cdn_host/__init__.py" }
-distribution = true
-
-[tool.pdm.build]
-source-includes = [
-    "scripts/*.py",
+    "flask>=3.1.1",
+    "a2wsgi>=1.10.10",
 ]
 
 [build-system]
@@ -72,6 +65,14 @@ extend-select = [
 branch = true
 parallel=true
 source = ["fastapi_cdn_host"]
+omit = [
+    # omit anything in a .cache directory anywhere
+    "*/.cache/*",
+    # omit everything in /usr
+    "/usr/*",
+    # omit this single file
+    "scripts/parallel_test.py",
+]
 [tool.coverage.report]
 omit = ["*/tests/*", "test_*"]
 exclude_lines = [
@@ -83,3 +84,12 @@ exclude_lines = [
 
 [tool.bandit]
 exclude_dirs = ["tests", "fastapi_cdn_host/cli.py", "scripts", "examples", ".venv"]
+
+[tool.pdm]
+version = { source = "file", path = "fastapi_cdn_host/__init__.py" }
+distribution = true
+
+[tool.pdm.build]
+source-includes = [
+    "scripts/*.py",
+]

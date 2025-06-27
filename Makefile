@@ -47,6 +47,9 @@ _build:
 	pdm build --verbose
 build: deps _build
 
+publish: build
+	pdm publish
+
 venv:
 ifeq ($(wildcard .venv),)
 	pdm venv create 3.12

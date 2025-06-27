@@ -526,6 +526,8 @@ class StaticBuilder:
         app: FastAPI | None = None,
         favicon: str | None = None,
     ) -> AssetUrl | None:
+        if isinstance(static_root, str):
+            static_root = Path(static_root)
         if gs := list(static_root.rglob("swagger-ui*.css")):
             logger.info(f"Using local files in {static_root} to serve docs assets.")
             return self._generate_asset_urls_from_local_files(
@@ -620,7 +622,9 @@ class StaticBuilder:
             return self._maybe(static_root, app=app)
         if mounts := [r for r in app.routes if isinstance(r, Mount)]:
             for m in mounts:
-                for d in m.app.all_directories:  # type: ignore[attr-defined]
+                if not (directories := getattr(m.app, "all_directories", None)):
+                    continue
+                for d in directories:
                     if r := self._maybe(d, mount=m, app=app, favicon=favicon_url):
                         return r
         else:
