@@ -617,8 +617,9 @@ class StaticBuilder:
     ) -> AssetUrl | None:
         if static_root is not None:
             return self._maybe(static_root, app=app)
-        if mounts := [r for r in app.routes if isinstance(r, Mount)]:
+        if mounts := [r for r in app.routes if r.__class__.__name__ == "Mount"]:
             for m in mounts:
+                m = cast("Mount", m)
                 if not (directories := getattr(m.app, "all_directories", None)):
                     continue
                 for d in directories:
