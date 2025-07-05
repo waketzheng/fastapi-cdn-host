@@ -12,46 +12,34 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from ssl import SSLError
-from typing import Annotated, Any, Literal, TypeVar, Union, cast, overload
+from typing import TYPE_CHECKING, Annotated, Any, Literal, cast, overload
 
 import anyio
-import httpx
 from anyio import from_thread
-from fastapi import FastAPI, Request
-from fastapi.datastructures import URL
-from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
-from fastapi.responses import HTMLResponse
-from fastapi.routing import APIRoute, Mount
-from fastapi.staticfiles import StaticFiles
+from httpx import URL, AsyncClient, HTTPError
 
-if sys.version_info >= (3, 11):
-    from typing import ParamSpec, TypeVarTuple, Unpack
-else:
-    from typing_extensions import ParamSpec, TypeVarTuple, Unpack
+from ._types import (
+    CdnHostInfoType,
+    CdnPathInfoType,
+    DocsCdnHostType,
+    ExtendCdnHostType,
+    LockFunc,
+    P,
+    PosArgsT,
+    StrictCdnHostInfoType,
+    T_Retval,
+    Unpack,
+)
+
+if TYPE_CHECKING:
+    from fastapi import FastAPI, Request
+    from fastapi.responses import HTMLResponse
+    from fastapi.routing import Mount
 
 logger = logging.getLogger("fastapi-cdn-host")
-
 OFFICIAL_REDOC = "https://cdn.redoc.ly/redoc/latest/bundles/"
 DEFAULT_ASSET_PATH = ("/swagger-ui-dist@{version}/", "/redoc@next/bundles/")
 NORMAL_ASSET_PATH = ("/swagger-ui/{version}/", OFFICIAL_REDOC)
-CdnPathInfoType = tuple[
-    Annotated[str, "swagger-ui module path info(must startswith '/')"],
-    Annotated[str, "redoc path or url info(must startswith '/')"],
-]
-CdnDomainType = Annotated[str, "Host for swagger-ui/redoc"]
-StrictCdnHostInfoType = tuple[CdnDomainType, CdnPathInfoType]
-CdnHostInfoType = Union[
-    Annotated[CdnDomainType, f"Will use DEFAULT_ASSET_PATH: {DEFAULT_ASSET_PATH}"],
-    tuple[CdnDomainType, Annotated[str, "In case of swagger/redoc has the same path"]],
-    StrictCdnHostInfoType,
-]
-DocsCdnHostType = Union[
-    Path, "CdnHostEnum", str, list[CdnHostInfoType], CdnHostInfoType
-]
-T_Retval = TypeVar("T_Retval")
-PosArgsT = TypeVarTuple("PosArgsT")
-LockFunc = Callable[[Request], Any]
-P = ParamSpec("P")
 
 
 class CdnHostItem:
@@ -91,7 +79,7 @@ class CdnHostItem:
 
     def export(self) -> StrictCdnHostInfoType:
         url = URL(self.remove_filename(self.swagger_ui))
-        if not (scheme := url.scheme) or not (hostname := url.hostname):
+        if not (scheme := url.scheme) or not (hostname := url.host):
             raise ValueError(f"Invalid ({url!r}) -- missing scheme or hostname")
         parts = url.path.split("/")
         for index, value in enumerate(parts):
@@ -131,10 +119,8 @@ class CdnHostEnum(Enum):
         host_infos: list[StrictCdnHostInfoType] = []
         for i in host:
             if isinstance(i, CdnHostItem):
-                j = i.export()
-                host_infos.append(j)
-            else:
-                host_infos.append(i)
+                i = i.export()
+            host_infos.append(i)
         return [*host_infos, *cls]
 
 
@@ -152,7 +138,7 @@ class HttpSniff:
     @classmethod
     async def fetch(
         cls,
-        client: httpx.AsyncClient,
+        client: AsyncClient,
         url: str,
         results: list[Any],
         index: int,
@@ -163,7 +149,7 @@ class HttpSniff:
             return
         try:
             r = await client.get(url)
-        except (httpx.HTTPError, SSLError):
+        except (HTTPError, SSLError):
             ...
         else:
             if r.status_code < 300:
@@ -212,7 +198,7 @@ class HttpSniff:
     ) -> list[str] | list[bytes]:
         total = len(urls)
         results: list[bytes | None] = [None] * total
-        client = httpx.AsyncClient(timeout=total_seconds, follow_redirects=True)
+        client = AsyncClient(timeout=total_seconds, follow_redirects=True)
         await client.__aenter__()
         async with anyio.create_task_group() as tg:
             for i, url in enumerate(urls):
@@ -458,12 +444,16 @@ class DocsBuilder:
     def update_entrypoint(
         self, func: Callable[..., Any], app: FastAPI, url: str
     ) -> None:
-        app.routes[self.index] = APIRoute(url, func, include_in_schema=False)
+        app.routes[self.index] = app.routes[self.index].__class__(  # type:ignore[call-arg]
+            url, func, include_in_schema=False
+        )
 
     def update_docs_entrypoint(
         self, urls: AssetUrl, app: FastAPI, url: str, lock: LockFunc | None = None
     ) -> None:
         async def swagger_ui_html(req: Request) -> HTMLResponse:
+            from fastapi.openapi.docs import get_swagger_ui_html
+
             await self.try_request_lock(req, lock)
             root_path = req.scope.get("root_path", "").rstrip("/")
             asset_urls = CdnHostBuilder.fill_root_path(urls, root_path)
@@ -492,6 +482,8 @@ class DocsBuilder:
         self, urls: AssetUrl, app: FastAPI, url: str, lock: LockFunc | None = None
     ) -> None:
         async def redoc_html(req: Request) -> HTMLResponse:
+            from fastapi.openapi.docs import get_redoc_html
+
             await self.try_request_lock(req, lock)
             root_path = req.scope.get("root_path", "").rstrip("/")
             asset_urls = CdnHostBuilder.fill_root_path(urls, root_path)
@@ -546,7 +538,24 @@ class StaticBuilder:
         return uri_path.rstrip("/") + "/" + p.relative_to(static_root).as_posix()
 
     @staticmethod
+    def mount_static_root(
+        app: FastAPI, uri_path: str, static_root: Path | str, check_dir: bool
+    ) -> None:
+        from fastapi.staticfiles import StaticFiles
+
+        app.mount(
+            uri_path,
+            StaticFiles(
+                directory=Path(static_root).resolve(),
+                follow_symlink=True,
+                check_dir=check_dir,
+            ),
+            name=uri_path.strip("/"),
+        )
+
+    @classmethod
     def auto_mount_static(
+        cls,
         app: FastAPI,
         static_root: Path | str,
         uri_path: str | None = None,
@@ -555,16 +564,7 @@ class StaticBuilder:
         if uri_path is None:
             uri_path = "/static"
         if all(getattr(r, "path", "") != uri_path for r in app.routes):
-            name = uri_path.strip("/")
-            app.mount(
-                uri_path,
-                StaticFiles(
-                    directory=Path(static_root).resolve(),
-                    follow_symlink=True,
-                    check_dir=check_dir,
-                ),
-                name=name,
-            )
+            cls.mount_static_root(app, uri_path, static_root, check_dir)
             logger.info(f"Auto mount static files to {uri_path} from {static_root}")
         return uri_path
 
@@ -620,8 +620,9 @@ class StaticBuilder:
     ) -> AssetUrl | None:
         if static_root is not None:
             return self._maybe(static_root, app=app)
-        if mounts := [r for r in app.routes if isinstance(r, Mount)]:
+        if mounts := [r for r in app.routes if r.__class__.__name__ == "Mount"]:
             for m in mounts:
+                m = cast("Mount", m)
                 if not (directories := getattr(m.app, "all_directories", None)):
                     continue
                 for d in directories:
@@ -635,12 +636,7 @@ class StaticBuilder:
 
 def patch_docs(
     app: FastAPI,
-    cdn_host: CdnHostEnum
-    | list[CdnHostInfoType]
-    | CdnHostInfoType
-    | Path
-    | AssetUrl
-    | None = None,
+    cdn_host: ExtendCdnHostType | None = None,
     favicon_url: str | None = None,
     lock: LockFunc | None = None,
     cache: bool = True,
