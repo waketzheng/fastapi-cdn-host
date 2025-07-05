@@ -16,7 +16,6 @@ from typing import TYPE_CHECKING, Annotated, Any, Literal, cast, overload
 
 import anyio
 from anyio import from_thread
-from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
 from httpx import URL, AsyncClient, HTTPError
 
 from ._types import (
@@ -453,6 +452,8 @@ class DocsBuilder:
         self, urls: AssetUrl, app: FastAPI, url: str, lock: LockFunc | None = None
     ) -> None:
         async def swagger_ui_html(req: Request) -> HTMLResponse:
+            from fastapi.openapi.docs import get_swagger_ui_html
+
             await self.try_request_lock(req, lock)
             root_path = req.scope.get("root_path", "").rstrip("/")
             asset_urls = CdnHostBuilder.fill_root_path(urls, root_path)
@@ -481,6 +482,8 @@ class DocsBuilder:
         self, urls: AssetUrl, app: FastAPI, url: str, lock: LockFunc | None = None
     ) -> None:
         async def redoc_html(req: Request) -> HTMLResponse:
+            from fastapi.openapi.docs import get_redoc_html
+
             await self.try_request_lock(req, lock)
             root_path = req.scope.get("root_path", "").rstrip("/")
             asset_urls = CdnHostBuilder.fill_root_path(urls, root_path)
