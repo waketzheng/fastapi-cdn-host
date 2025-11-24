@@ -17,22 +17,22 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: [3.9, "3.10", 3.11, 3.12, 3.13]
+        python-version: [3.9, "3.10", 3.11, 3.12, 3.13, 3.14]
         os: [ubuntu-latest, macOS-latest, windows-latest]
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           allow-prereleases: true
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
       - name: Set up PDM
         uses: pdm-project/setup-pdm@v4
         with:
           python-version: ${{ matrix.python-version }}
           cache: true
-      - name: Install requirements
+      - name: Install dependencies
         run: |
           pdm config use_uv true
           pdm sync --group :all
@@ -44,9 +44,7 @@ jobs:
       - name: test
         run: ./scripts/test.py
       - name: Upload Coverage
-        run: |
-          uv pip install -U "coveralls @ git+https://github.com/waketzheng/coveralls-python@4.1.1"
-          pdm run coveralls --service=github
+        run: uvx coveralls --service=github
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COVERALLS_FLAG_NAME: ${{ matrix.python-version }}
@@ -57,9 +55,8 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
+      - uses: astral-sh/setup-uv@v7
       - name: Finished
-        run: |
-          pip3 install --upgrade "coveralls @ git+https://github.com/waketzheng/coveralls-python@4.1.1"
-          coveralls --finish
+        run: uvx coveralls --finish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
