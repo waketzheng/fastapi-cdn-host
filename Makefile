@@ -1,3 +1,5 @@
+version=3.12
+
 help:
 	@echo  "Fastapi CDN Host development makefile"
 	@echo
@@ -14,24 +16,29 @@ help:
 	@echo  "    build   Build wheel and tar file to dist/"
 
 up:
-	pdm self update --verbose
-	pdm update
+	uv lock --upgrade
+	$(MAKE) deps options=--frozen
+	pdm run fast pypi --quiet
+	pre-commit autoupdate
+	pdm update -G :all --no-sync
 
 lock:
-	pdm lock --group :all --strategy inherit_metadata
+	uv lock --verbose
+	pdm run fast pypi --quiet
+	pdm lock -G :all
 
 show:
 	pdm list --tree $(options)
 
 deps:
-	pdm install --verbose --group :all --frozen
+	uv sync --all-extras --all-groups $(options)
 
 _check:
 	./scripts/check.py
 check: deps _build _check
 
 _lint:
-	pdm run fast lint
+	pdm run fast lint $(options)
 lint: deps _build _lint
 
 _test:
@@ -44,17 +51,38 @@ style: deps _style
 
 _build:
 	rm -fR dist/
-	pdm build --verbose
+	uv build --verbose
 build: deps _build
 
 publish: build
-	pdm publish
+	# uv publish
+	@echo Move to github action, just need to mark a tag!
 
 venv:
 ifeq ($(wildcard .venv),)
-	pdm venv create 3.12
+	pdm venv create $(version)
 	$(MAKE) deps
 else
 	@echo './.venv' exists, skip virtual environment creating.
 	pdm run python -V
 endif
+
+venv313:
+	$(MAKE) venv version=3.13
+
+_verify: up lock
+	$(MAKE) venv options=--force
+	$(MAKE) venv version=3.9 options=--force
+	$(MAKE) venv313 options=--force
+	$(MAKE) show
+	$(MAKE) deps
+	$(MAKE) check
+	$(MAKE) _check
+	$(MAKE) lint
+	$(MAKE) _lint
+	$(MAKE) test
+	$(MAKE) _test
+	$(MAKE) style
+	$(MAKE) _style
+	$(MAKE) build
+	$(MAKE) _build
