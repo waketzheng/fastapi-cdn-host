@@ -23,6 +23,15 @@ files = [
 ]
 
 [[package]]
+name = "annotated-doc"
+version = "0.0.4"
+summary = ""
+files = [
+    {file = "annotated_doc-0.0.4-py3-none-any.whl", hash = "sha256:571ac1dc6991c450b25a9c2d84a3705e2ae7a53467b5d111c24fa8baabbed320"},
+    {file = "annotated_doc-0.0.4.tar.gz", hash = "sha256:fbcda96e87e9c92ad167c2e53839e57503ecfda18804ea28102353485033faa4"},
+]
+
+[[package]]
 name = "annotated-types"
 version = "0.7.0"
 summary = ""
@@ -48,15 +57,27 @@ files = [
 
 [[package]]
 name = "asynctor"
-version = "0.8.1"
+version = "0.9.1"
 summary = ""
 dependencies = [
-    "anyio",
+    "anyio; python_full_version < \"3.10\"",
     "eval-type-backport; python_full_version < \"3.10\"",
 ]
 files = [
-    {file = "asynctor-0.8.1-py3-none-any.whl", hash = "sha256:9398a3a8cfe7f122b953985c6bf03562864b5d339a7aa56c2f62468037c778a2"},
-    {file = "asynctor-0.8.1.tar.gz", hash = "sha256:6c28312fd21b168fde8241271a05898c7cada114825ed81c315b987b721934eb"},
+    {file = "asynctor-0.9.1-py3-none-any.whl", hash = "sha256:02f88b1c9882240285009085074c4af271075f6abd18bb885bbddbde0c741a87"},
+    {file = "asynctor-0.9.1.tar.gz", hash = "sha256:3a0c79dc5eff918752bf0dee9acf91688855435262274c071938250ec36fc8ce"},
+]
+
+[[package]]
+name = "asynctor"
+version = "0.11.0"
+summary = ""
+dependencies = [
+    "anyio; python_full_version >= \"3.10\"",
+]
+files = [
+    {file = "asynctor-0.11.0-py3-none-any.whl", hash = "sha256:a92912e6c5be43490eac43b9734a20c5dda741a3088497459fedcf85d897bb49"},
+    {file = "asynctor-0.11.0.tar.gz", hash = "sha256:a742377b05a9986a281cf6f4d6c5257dd38ed58caa32521f6a13cad02cd653d6"},
 ]
 
 [[package]]
@@ -70,17 +91,32 @@ files = [
 
 [[package]]
 name = "bandit"
-version = "1.8.5"
+version = "1.8.6"
 summary = ""
 dependencies = [
-    "colorama; sys_platform == \"win32\"",
-    "pyyaml",
-    "rich",
-    "stevedore",
+    "colorama; python_full_version < \"3.10\" and sys_platform == \"win32\"",
+    "pyyaml; python_full_version < \"3.10\"",
+    "rich; python_full_version < \"3.10\"",
+    "stevedore; python_full_version < \"3.10\"",
 ]
 files = [
-    {file = "bandit-1.8.5-py3-none-any.whl", hash = "sha256:cb2e57524e99e33ced48833c6cc9c12ac78ae970bb6a450a83c4b506ecc1e2f9"},
-    {file = "bandit-1.8.5.tar.gz", hash = "sha256:db812e9c39b8868c0fed5278b77fffbbaba828b4891bc80e34b9c50373201cfd"},
+    {file = "bandit-1.8.6-py3-none-any.whl", hash = "sha256:3348e934d736fcdb68b6aa4030487097e23a501adf3e7827b63658df464dddd0"},
+    {file = "bandit-1.8.6.tar.gz", hash = "sha256:dbfe9c25fc6961c2078593de55fd19f2559f9e45b99f1272341f5b95dea4e56b"},
+]
+
+[[package]]
+name = "bandit"
+version = "1.9.2"
+summary = ""
+dependencies = [
+    "colorama; python_full_version >= \"3.10\" and sys_platform == \"win32\"",
+    "pyyaml; python_full_version >= \"3.10\"",
+    "rich; python_full_version >= \"3.10\"",
+    "stevedore; python_full_version >= \"3.10\"",
+]
+files = [
+    {file = "bandit-1.9.2-py3-none-any.whl", hash = "sha256:bda8d68610fc33a6e10b7a8f1d61d92c8f6c004051d5e946406be1fb1b16a868"},
+    {file = "bandit-1.9.2.tar.gz", hash = "sha256:32410415cd93bf9c8b91972159d5cf1e7f063a9146d70345641cd3877de348ce"},
 ]
 
 [[package]]
@@ -270,54 +306,75 @@ files = [
 
 [[package]]
 name = "fast-dev-cli"
-version = "0.16.1"
+version = "0.18.6"
 summary = ""
 dependencies = [
-    "bumpversion2",
-    "coverage",
-    "emoji",
-    "mypy",
-    "packaging",
-    "pytest",
-    "tomli; python_full_version < \"3.11\"",
-    "typer",
+    "bumpversion2; python_full_version < \"3.10\"",
+    "coverage; python_full_version < \"3.10\"",
+    "emoji; python_full_version < \"3.10\"",
+    "mypy; python_full_version < \"3.10\"",
+    "packaging; python_full_version < \"3.10\"",
+    "pytest; python_full_version < \"3.10\"",
+    "tomli; python_full_version < \"3.10\"",
+    "typer-slim; python_full_version < \"3.10\"",
 ]
 files = [
-    {file = "fast_dev_cli-0.16.1-py3-none-any.whl", hash = "sha256:076d45d2a33083ddba0230a855d257a2d72b9a9b2458e2a10cec552c557ec3f0"},
-    {file = "fast_dev_cli-0.16.1.tar.gz", hash = "sha256:c1afcf472bceb75af63b711530a3e2ce4ad00ff399b0351af33a4da5add41f5b"},
+    {file = "fast_dev_cli-0.18.6-py3-none-any.whl", hash = "sha256:e4d84cb621a88632608f5db12b1ffe21f22e133cf9541e4987cbd30617375537"},
+    {file = "fast_dev_cli-0.18.6.tar.gz", hash = "sha256:3acc791f0dadfc59168bca435b2aca74acb3b110d61e9152ea6eaf920adf0a72"},
+]
+
+[[package]]
+name = "fast-dev-cli"
+version = "0.19.4"
+summary = ""
+dependencies = [
+    "bumpversion2; python_full_version >= \"3.10\"",
+    "coverage; python_full_version >= \"3.10\"",
+    "emoji; python_full_version >= \"3.10\"",
+    "mypy; python_full_version >= \"3.10\"",
+    "packaging; python_full_version >= \"3.10\"",
+    "pytest; python_full_version >= \"3.10\"",
+    "tomli; python_full_version == \"3.10.*\"",
+    "typer-slim; python_full_version >= \"3.10\"",
+]
+files = [
+    {file = "fast_dev_cli-0.19.4-py3-none-any.whl", hash = "sha256:1430d8173de93d70137278e5df164ccc9f691011ae589301d654ec440b064a7d"},
+    {file = "fast_dev_cli-0.19.4.tar.gz", hash = "sha256:188c24c26a91c3df241a65cf327201898e308f42fb331d3d175777cf75783f02"},
 ]
 
 [[package]]
 name = "fastapi"
-version = "0.115.14"
+version = "0.122.0"
 summary = ""
 dependencies = [
+    "annotated-doc",
     "pydantic",
     "starlette",
     "typing-extensions",
 ]
 files = [
-    {file = "fastapi-0.115.14-py3-none-any.whl", hash = "sha256:6c0c8bf9420bd58f565e585036d971872472b4f7d3f6c73b698e10cffdefb3ca"},
-    {file = "fastapi-0.115.14.tar.gz", hash = "sha256:b1de15cdc1c499a4da47914db35d0e4ef8f1ce62b624e94e0e5824421df99739"},
+    {file = "fastapi-0.122.0-py3-none-any.whl", hash = "sha256:a456e8915dfc6c8914a50d9651133bd47ec96d331c5b44600baa635538a30d67"},
+    {file = "fastapi-0.122.0.tar.gz", hash = "sha256:cd9b5352031f93773228af8b4c443eedc2ac2aa74b27780387b853c3726fb94b"},
 ]
 
 [[package]]
 name = "fastapi-cli"
-version = "0.0.7"
+version = "0.0.16"
 summary = ""
 dependencies = [
     "rich-toolkit",
+    "tomli; python_full_version < \"3.11\"",
     "typer",
-    "uvicorn",
+    "uvicorn[standard]",
 ]
 files = [
-    {file = "fastapi_cli-0.0.7-py3-none-any.whl", hash = "sha256:d549368ff584b2804336c61f192d86ddea080c11255f375959627911944804f4"},
-    {file = "fastapi_cli-0.0.7.tar.gz", hash = "sha256:02b3b65956f526412515907a0793c9094abd4bfb5457b389f645b0ea6ba3605e"},
+    {file = "fastapi_cli-0.0.16-py3-none-any.whl", hash = "sha256:addcb6d130b5b9c91adbbf3f2947fe115991495fdb442fe3e51b5fc6327df9f4"},
+    {file = "fastapi_cli-0.0.16.tar.gz", hash = "sha256:e8a2a1ecf7a4e062e3b2eec63ae34387d1e142d4849181d936b23c4bdfe29073"},
 ]
 
 [[package]]
 name = "flask"
-version = "3.1.1"
+version = "3.1.2"
 summary = ""
 dependencies = [
     "blinker",
@@ -330,8 +387,8 @@ dependencies = [
     "werkzeug",
 ]
 files = [
-    {file = "flask-3.1.1-py3-none-any.whl", hash = "sha256:07aae2bb5eaf77993ef57e357491839f5fd9f4dc281593a81a9e4d79a24f295c"},
-    {file = "flask-3.1.1.tar.gz", hash = "sha256:284c7b8f2f58cb737f0cf1c30fd7eaf0ccfcde196099d24ecede3fc2005aa59e"},
+    {file = "flask-3.1.2-py3-none-any.whl", hash = "sha256:ca1d8112ec8a6158cc29ea4858963350011b5c846a414cdb7a954aa9e967d03c"},
+    {file = "flask-3.1.2.tar.gz", hash = "sha256:bf656c15c80190ed628ad08cdfd3aaa35beb087855e2f494910aa3774cc4fd87"},
 ]
 
 [[package]]
@@ -428,7 +485,7 @@ name = "importlib-metadata"
 version = "8.7.0"
 summary = ""
 dependencies = [
-    "zipp",
+    "zipp; python_full_version < \"3.10\"",
 ]
 files = [
     {file = "importlib_metadata-8.7.0-py3-none-any.whl", hash = "sha256:e5dd1551894c77868a30651cef00984d50e1002d06942a7101d34870c5f02afd"},
@@ -821,14 +878,14 @@ files = [
 
 [[package]]
 name = "pytest-mock"
-version = "3.14.1"
+version = "3.15.1"
 summary = ""
 dependencies = [
     "pytest",
 ]
 files = [
-    {file = "pytest_mock-3.14.1-py3-none-any.whl", hash = "sha256:178aefcd11307d874b4cd3100344e7e2d888d9791a6a1d9bfe90fbc1b74fd1d0"},
-    {file = "pytest_mock-3.14.1.tar.gz", hash = "sha256:159e9edac4c451ce77a5cdb9fc5d1100708d2dd4ba3c3df572f14097351af80e"},
+    {file = "pytest_mock-3.15.1-py3-none-any.whl", hash = "sha256:0a25e2eb88fe5168d535041d09a4529a188176ae608a6d249ee65abc0949630d"},
+    {file = "pytest_mock-3.15.1.tar.gz", hash = "sha256:1849a238f6f396da19762269de72cb1814ab44416fa73a8686deac10b0d87a0f"},
 ]
 
 [[package]]
@@ -909,7 +966,7 @@ files = [
 
 [[package]]
 name = "rich-toolkit"
-version = "0.14.7"
+version = "0.16.0"
 summary = ""
 dependencies = [
     "click==8.1.8; python_full_version < \"3.10\"",
@@ -918,8 +975,8 @@ dependencies = [
     "typing-extensions",
 ]
 files = [
-    {file = "rich_toolkit-0.14.7-py3-none-any.whl", hash = "sha256:def05cc6e0f1176d6263b6a26648f16a62c4563b277ca2f8538683acdba1e0da"},
-    {file = "rich_toolkit-0.14.7.tar.gz", hash = "sha256:6cca5a68850cc5778915f528eb785662c27ba3b4b2624612cce8340fa9701c5e"},
+    {file = "rich_toolkit-0.16.0-py3-none-any.whl", hash = "sha256:3f4307f678c5c1e22c36d89ac05f1cd145ed7174f19c1ce5a4d3664ba77c0f9e"},
+    {file = "rich_toolkit-0.16.0.tar.gz", hash = "sha256:2f554b00b194776639f4d80f2706980756b659ceed9f345ebbd9de77d1bdd0f4"},
 ]
 
 [[package]]
@@ -1024,25 +1081,43 @@ files = [
 
 [[package]]
 name = "trio"
-version = "0.30.0"
+version = "0.31.0"
 summary = ""
 dependencies = [
-    "attrs",
-    "cffi; implementation_name != \"pypy\" and os_name == \"nt\"",
-    "exceptiongroup; python_full_version < \"3.11\"",
-    "idna",
-    "outcome",
-    "sniffio",
-    "sortedcontainers",
+    "attrs; python_full_version < \"3.10\"",
+    "cffi; python_full_version < \"3.10\" and implementation_name != \"pypy\" and os_name == \"nt\"",
+    "exceptiongroup; python_full_version < \"3.10\"",
+    "idna; python_full_version < \"3.10\"",
+    "outcome; python_full_version < \"3.10\"",
+    "sniffio; python_full_version < \"3.10\"",
+    "sortedcontainers; python_full_version < \"3.10\"",
 ]
 files = [
-    {file = "trio-0.30.0-py3-none-any.whl", hash = "sha256:3bf4f06b8decf8d3cf00af85f40a89824669e2d033bb32469d34840edcfc22a5"},
-    {file = "trio-0.30.0.tar.gz", hash = "sha256:0781c857c0c81f8f51e0089929a26b5bb63d57f927728a5586f7e36171f064df"},
+    {file = "trio-0.31.0-py3-none-any.whl", hash = "sha256:b5d14cd6293d79298b49c3485ffd9c07e3ce03a6da8c7dfbe0cb3dd7dc9a4774"},
+    {file = "trio-0.31.0.tar.gz", hash = "sha256:f71d551ccaa79d0cb73017a33ef3264fde8335728eb4c6391451fe5d253a9d5b"},
+]
+
+[[package]]
+name = "trio"
+version = "0.32.0"
+summary = ""
+dependencies = [
+    "attrs; python_full_version >= \"3.10\"",
+    "cffi; python_full_version >= \"3.10\" and implementation_name != \"pypy\" and os_name == \"nt\"",
+    "exceptiongroup; python_full_version == \"3.10.*\"",
+    "idna; python_full_version >= \"3.10\"",
+    "outcome; python_full_version >= \"3.10\"",
+    "sniffio; python_full_version >= \"3.10\"",
+    "sortedcontainers; python_full_version >= \"3.10\"",
+]
+files = [
+    {file = "trio-0.32.0-py3-none-any.whl", hash = "sha256:4ab65984ef8370b79a76659ec87aa3a30c5c7c83ff250b4de88c29a8ab6123c5"},
+    {file = "trio-0.32.0.tar.gz", hash = "sha256:150f29ec923bcd51231e1d4c71c7006e65247d68759dd1c19af4ea815a25806b"},
 ]
 
 [[package]]
 name = "typer"
-version = "0.16.0"
+version = "0.20.0"
 summary = ""
 dependencies = [
     "click==8.1.8; python_full_version < \"3.10\"",
@@ -1052,8 +1127,22 @@ dependencies = [
     "typing-extensions",
 ]
 files = [
-    {file = "typer-0.16.0-py3-none-any.whl", hash = "sha256:1f79bed11d4d02d4310e3c1b7ba594183bcedb0ac73b27a9e5f28f6fb5b98855"},
-    {file = "typer-0.16.0.tar.gz", hash = "sha256:af377ffaee1dbe37ae9440cb4e8f11686ea5ce4e9bae01b84ae7c63b87f1dd3b"},
+    {file = "typer-0.20.0-py3-none-any.whl", hash = "sha256:5b463df6793ec1dca6213a3cf4c0f03bc6e322ac5e16e13ddd622a889489784a"},
+    {file = "typer-0.20.0.tar.gz", hash = "sha256:1aaf6494031793e4876fb0bacfa6a912b551cf43c1e63c800df8b1a866720c37"},
+]
+
+[[package]]
+name = "typer-slim"
+version = "0.20.0"
+summary = ""
+dependencies = [
+    "click==8.1.8; python_full_version < \"3.10\"",
+    "click==8.2.1; python_full_version >= \"3.10\"",
+    "typing-extensions",
+]
+files = [
+    {file = "typer_slim-0.20.0-py3-none-any.whl", hash = "sha256:f42a9b7571a12b97dddf364745d29f12221865acef7a2680065f9bb29c7dc89d"},
+    {file = "typer_slim-0.20.0.tar.gz", hash = "sha256:9fc6607b3c6c20f5c33ea9590cbeb17848667c51feee27d9e314a579ab07d1a3"},
 ]
 
 [[package]]
