@@ -13,7 +13,6 @@ from typing import Annotated, Any
 
 import anyio
 import typer
-from rich import print
 from rich.progress import Progress, SpinnerColumn, TaskID
 
 from .client import CdnHostBuilder, HttpSniff
@@ -22,7 +21,7 @@ app = typer.Typer()
 
 
 def run_shell(cmd: str) -> None:
-    print(f"--> {cmd}")
+    typer.echo(f"--> {cmd}")
     command = shlex.split(cmd)
     cmd_env = None
     index = 0
@@ -54,10 +53,10 @@ from {} import app
 fastapi_cdn_host.patch_docs(app)
 
 def _runserver() -> int:
-    r = subprocess.run(['fastapi', 'dev', __file__])
+    r = subprocess.run(["fastapi", "dev", __file__, *sys.argv[2:]])
     return int(bool(r.returncode))
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(_runserver())
 """
 
@@ -65,7 +64,7 @@ if __name__ == '__main__':
 def write_app(dest: Path, from_path: str | Path) -> None:
     module = Path(from_path).stem
     size = dest.write_text(TEMPLATE.format(module).strip())
-    print(f"Create {dest} with {size=}")
+    typer.echo(f"Create {dest} with {size=}")
 
 
 @contextmanager
@@ -78,7 +77,7 @@ def patch_app(path: str | Path, remove: bool = True) -> Generator[Path, None, No
     finally:
         if remove:
             app_file.unlink()
-            print(f"Auto remove temp file: {app_file}")
+            typer.echo(f"Auto remove temp file: {app_file}")
 
 
 @asynccontextmanager
@@ -140,15 +139,15 @@ async def download_offline_assets(dirname: str | Path, timeout: float = 30) -> N
     )
     if not await static_root.exists():
         await static_root.mkdir(parents=True)
-        print(f"Directory {static_root} created.")
+        typer.echo(f"Directory {static_root} created.")
     else:
         async for p in static_root.glob("swagger-ui*.js"):
             relative_path = p.relative_to(cwd)
-            print(f"{relative_path} already exists. abort!")
+            typer.echo(f"{relative_path} already exists. abort!")
             return
     async with percentbar("Comparing cdn hosts response speed"):
         urls = await CdnHostBuilder.sniff_the_fastest()
-    print("Result:", urls)
+    typer.echo(f"Result: {urls}")
     with spinnerbar("Fetching files from cdn", color="yellow"):
         url_list = [urls.js, urls.css, urls.redoc]
         contents = await HttpSniff.bulk_fetch(
@@ -156,12 +155,13 @@ async def download_offline_assets(dirname: str | Path, timeout: float = 30) -> N
         )
         for url, content in zip(url_list, contents):
             if not content:
-                print(f"[red]ERROR:[/red] Failed to fetch content from {url}")
+                red_head = typer.style("ERROR:", fg=typer.colors.RED)
+                typer.echo(red_head + f" Failed to fetch content from {url}")
             else:
                 path = static_root / Path(url).name
                 size = await path.write_bytes(content)
-                print(f"Write to {path} with {size=}")
-    print("Done.")
+                typer.echo(f"Write to {path} with {size=}")
+    typer.secho("Done.", fg=typer.colors.GREEN)
 
 
 def handle_cache() -> None:

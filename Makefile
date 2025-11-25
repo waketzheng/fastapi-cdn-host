@@ -23,7 +23,7 @@ up:
 
 lock:
 	uv lock --verbose
-	pdm run fast pypi --quiet
+	$(MAKE) deps options=--frozen
 	pdm lock -G :all
 
 show:
