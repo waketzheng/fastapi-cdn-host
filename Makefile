@@ -18,7 +18,6 @@ help:
 up:
 	uv lock --upgrade
 	$(MAKE) deps options=--frozen
-	pdm run fast pypi --quiet
 	pre-commit autoupdate
 	pdm update -G :all --no-sync
 
@@ -32,6 +31,7 @@ show:
 
 deps:
 	uv sync --all-extras --all-groups $(options)
+	pdm run fast pypi --quiet
 
 _check:
 	./scripts/check.py
