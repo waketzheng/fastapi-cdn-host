@@ -27,15 +27,15 @@ jobs:
           allow-prereleases: true
       - name: Install uv
         uses: astral-sh/setup-uv@v7
-      - name: Set up PDM
-        uses: pdm-project/setup-pdm@v4
         with:
-          python-version: ${{ matrix.python-version }}
-          cache: true
-      - name: Install requirements
+          activate-environment: true
+          enable-cache: true
+      - name: Set up PDM by uv
         run: |
+          uv tool install pdm
           pdm config use_uv true
-          pdm run fast deps --uv
+      - name: Install requirements
+        run: uvx --from fastdevcli-slim fast deps --uv
       - uses: astral-sh/ruff-action@v3
       - name: Check code style and Type Hint
         run: ./scripts/check.py
