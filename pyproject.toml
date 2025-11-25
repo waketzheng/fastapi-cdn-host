@@ -25,11 +25,11 @@ repository = "https://github.com/waketzheng/fastapi-cdn-host.git"
 
 [dependency-groups]
 dev = [
-    "fast-dev-cli (>=0.14.2,<1.0.0)",
-    "bandit (>=1.8.3,<2.0.0)",
-    "asynctor (>=0.8.0,<1.0.0)",
-    "trio (>=0.29.0,<1.0.0)",
-    "pytest-mock (>=3.14.0,<4.0.0)",
+    "fast-dev-cli>=0.18.0",
+    "bandit>=1.8.5",
+    "asynctor>=0.8.7",
+    "trio>=0.29.0",
+    "pytest-mock>=3.14.0",
     "flask>=3.1.1",
     "a2wsgi>=1.10.10",
 ]
@@ -93,3 +93,8 @@ distribution = true
 source-includes = [
     "scripts/*.py",
 ]
+
+[tool.pdm.scripts]
+pypi = "pdm run python scripts/uv_pypi.py {args}"
+deps = "pdm run fast deps {args}"
+tree = "pdm list --tree {args}"

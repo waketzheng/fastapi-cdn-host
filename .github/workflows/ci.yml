@@ -27,15 +27,15 @@ jobs:
           allow-prereleases: true
       - name: Install uv
         uses: astral-sh/setup-uv@v7
-      - name: Set up PDM
-        uses: pdm-project/setup-pdm@v4
         with:
-          python-version: ${{ matrix.python-version }}
-          cache: true
-      - name: Install requirements
+          activate-environment: true
+          enable-cache: true
+      - name: Set up PDM by uv
         run: |
+          uv tool install pdm
           pdm config use_uv true
-          pdm sync --group :all
+      - name: Install requirements
+        run: uvx --from fastdevcli-slim fast deps --uv
       - uses: astral-sh/ruff-action@v3
       - name: Check code style and Type Hint
         run: ./scripts/check.py
@@ -44,9 +44,7 @@ jobs:
       - name: test
         run: ./scripts/test.py
       - name: Upload Coverage
-        run: |
-          uv pip install -U "coveralls @ git+https://github.com/waketzheng/coveralls-python@4.1.1"
-          pdm run coveralls --service=github
+        run: uvx coveralls --service=github
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COVERALLS_FLAG_NAME: ${{ matrix.python-version }}
@@ -57,9 +55,8 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
+      - uses: astral-sh/setup-uv@v7
       - name: Finished
-        run: |
-          pip3 install --upgrade "coveralls @ git+https://github.com/waketzheng/coveralls-python@4.1.1"
-          coveralls --finish
+        run: uvx coveralls --finish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
