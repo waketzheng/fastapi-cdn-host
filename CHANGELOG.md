@@ -8,6 +8,7 @@
 
 #### Changed
 - Official support python3.14 (#35)
+- Use uv instead of pdm to install deps (#36)
 
 #### Fixed
 - Fix mount app error when missing `all_directories` attribution (#30)
