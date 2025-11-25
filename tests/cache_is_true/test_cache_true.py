@@ -92,9 +92,10 @@ def test_cache_file(mocker, tmp_path):
     assert os.path.exists(str(file))
     file.parent.chmod(0)
     with pytest.raises(PermissionError):
-        file.exists()
+        file.read_text()
     mocker.patch("os.path.expanduser", return_value=str(file))
     _, cache_file = CdnHostBuilder().get_cache_file()
+    file.parent.chmod(0o700)
     if sys.platform == "win32":
         temp_directory_env_name = "temp"
         temp_dir = Path(os.getenv(temp_directory_env_name, "."))

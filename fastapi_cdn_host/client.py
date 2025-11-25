@@ -311,12 +311,15 @@ class CdnHostBuilder:
         file = Path(os.path.expanduser(cls.default_cache_file))
         try:
             exists = file.exists()
+            file.read_bytes()  # Python3.14 only raise PermissionError when reading
         except PermissionError:
             tmp_dir = Path("/tmp")  # nosec:B108
             if sys.platform == "win32":
                 tmp_dir = Path(os.getenv("temp", "."))  # NOQA:SIM112
             file = tmp_dir / cls.default_cache_file.replace("~/", "")
             exists = file.exists()
+        except FileNotFoundError:
+            ...
         return exists, file
 
     def _cache_wrap(self, func: Callable[P, AssetUrl]) -> Callable[P, AssetUrl]:
