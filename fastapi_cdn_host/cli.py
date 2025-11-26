@@ -28,6 +28,14 @@ def load_bool(name: str) -> bool:
 
 
 def run_shell(cmd: str) -> None:
+    """Run cmd by subprocess
+
+    Example::
+        run_shell('PYTHONPATH=. python main.py')
+
+    Will be convert to:
+        subprocess.run(['python', 'main.py'], env={'PYTHONPATH': '.', **os.environ})
+    """
     typer.echo(f"--> {cmd}")
     command = shlex.split(cmd)
     cmd_env = None
@@ -38,8 +46,9 @@ def run_shell(cmd: str) -> None:
             break
         name, value = c.split("=")
         if cmd_env is None:
-            cmd_env = os.environ.copy()
-        cmd_env[name] = value
+            cmd_env = {name: value, **os.environ}
+        else:
+            cmd_env[name] = value
     if cmd_env is not None:
         command = command[index:]
     subprocess.run(command, env=cmd_env)  # nosec:B603
