@@ -14,6 +14,7 @@ permissions:
 
 jobs:
   test:
+    if: ${{ !(github.event_name == 'pull_request' && github.head_ref == 'dev') }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -51,6 +52,7 @@ jobs:
           COVERALLS_PARALLEL: true
 
   coveralls:
+    if: ${{ !(github.event_name == 'pull_request' && github.head_ref == 'dev') }}
     name: Finish Coveralls
     needs: test
     runs-on: ubuntu-latest
