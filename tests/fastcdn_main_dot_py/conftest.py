@@ -1,6 +1,5 @@
 import os
 import random
-import time
 from collections.abc import AsyncGenerator, Generator
 from multiprocessing import Process
 from pathlib import Path
@@ -21,7 +20,6 @@ def runserver() -> Generator[None]:
     env = {"FASTCDN_UVICORN": "1", "FASTCDN_NORELOAD": "1", **os.environ}
     p = Process(target=Shell(cmd, env=env).run)
     p.start()
-    time.sleep(3)  # Wait for app to startup
     try:
         yield
     finally:
