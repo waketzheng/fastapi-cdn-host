@@ -27,8 +27,8 @@ def runserver() -> Generator[None]:
     finally:
         p.terminate()
         leftover = f"ps aux|grep fastapi-cdn-host|grep 'port={PORT}'|grep -v grep"
+        kill_ps = leftover + "| awk '{print $2}' |xargs -I {} kill -9 {}"
         if Shell(leftover).capture_output().strip():
-            kill_ps = leftover + "| awk '{print $2}' |xargs -I {} kill -9 {}"
             Shell(kill_ps).run()
         else:
             typer.secho("You may want to clean subprocess by:", fg=typer.colors.YELLOW)

@@ -11,7 +11,7 @@ from fastapi_cdn_host.utils import TestClient
 
 
 def http_server(port: int):
-    subprocess.run(["poetry", "run", "python", "-m", "http.server", str(port)])
+    subprocess.run(["pdm", "run", "python", "-m", "http.server", str(port)])
 
 
 @contextmanager
