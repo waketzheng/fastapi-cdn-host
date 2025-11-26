@@ -1,9 +1,13 @@
+import os
 import random
+import time
 from collections.abc import AsyncGenerator, Generator
 from multiprocessing import Process
+from pathlib import Path
 
 import httpx
 import pytest
+import typer
 from asynctor.utils import Shell
 
 PORT = random.randint(9000, 9999)
@@ -11,13 +15,24 @@ PORT = random.randint(9000, 9999)
 
 @pytest.fixture(scope="session", autouse=True)
 def runserver() -> Generator[None]:
+    if not Path("static").exists():
+        Shell("fastcdn offline").run()
     cmd = f"fastcdn main.py --port={PORT}"
-    p = Process(target=Shell(cmd).run)
+    env = {"FASTCDN_UVICORN": "1", "FASTCDN_NORELOAD": "1", **os.environ}
+    p = Process(target=Shell(cmd, env=env).run)
     p.start()
+    time.sleep(3)  # Wait for app to startup
     try:
         yield
     finally:
         p.terminate()
+        leftover = f"ps aux|grep fastapi-cdn-host|grep 'port={PORT}'|grep -v grep"
+        if Shell(leftover).capture_output().strip():
+            kill_ps = leftover + "| awk '{print $2}' |xargs -I {} kill -9 {}"
+            Shell(kill_ps).run()
+        else:
+            typer.secho("You may want to clean subprocess by:", fg=typer.colors.YELLOW)
+            typer.secho(kill_ps, bold=True)
 
 
 @pytest.fixture(scope="module")
