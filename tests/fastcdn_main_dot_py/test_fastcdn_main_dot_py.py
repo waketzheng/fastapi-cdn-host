@@ -3,13 +3,14 @@ import contextlib
 import os
 import uuid
 from datetime import datetime
+from pathlib import Path
 
 import anyio
 import pytest
 from asynctor.timing import Timer
 from httpx import AsyncClient, ConnectError
 
-from fastapi_cdn_host.cli import load_bool, run_shell
+from fastapi_cdn_host.cli import TEMPLATE, load_bool, run_shell, write_app
 from fastapi_cdn_host.client import CdnHostBuilder
 
 
@@ -120,3 +121,14 @@ class TestRunShell:
         mock_run.assert_called_once_with(
             ["ls", "-a", "."], env={"AA": "1", "BB": "2", "CC": "3"}
         )
+
+
+def test_write_app(mocker, tmp_workdir):
+    dest = Path("main.py")
+    src = Path("app_1.py")
+    mock_echo = mocker.patch("typer.echo")
+    write_app(dest, src)
+    content = dest.read_bytes()
+    assert content.decode() == TEMPLATE.format(src.stem).strip()
+    size = len(content)
+    mock_echo.assert_called_once_with(f"Create {dest} with {size=}")

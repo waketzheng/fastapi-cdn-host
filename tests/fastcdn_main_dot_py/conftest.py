@@ -1,5 +1,6 @@
 import os
 import random
+import sys
 from collections.abc import AsyncGenerator, Generator
 from multiprocessing import Process
 from pathlib import Path
@@ -8,6 +9,21 @@ import httpx
 import pytest
 import typer
 from asynctor.utils import Shell
+
+if sys.version_info >= (3, 11):
+    from contextlib import chdir
+else:
+    from contextlib import contextmanager
+
+    @contextmanager
+    def chdir(dst: Path):
+        src = Path.cwd()
+        os.chdir(dst)
+        try:
+            yield
+        finally:
+            os.chdir(src)
+
 
 PORT = random.randint(9000, 9999)
 
@@ -39,3 +55,9 @@ def runserver() -> Generator[None]:
 async def client() -> AsyncGenerator[httpx.AsyncClient]:
     async with httpx.AsyncClient(base_url=f"http://localhost:{PORT}") as c:
         yield c
+
+
+@pytest.fixture
+def tmp_workdir(tmp_path):
+    with chdir(tmp_path):
+        yield
