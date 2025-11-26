@@ -33,6 +33,8 @@ def runserver() -> Generator[None]:
         else:
             typer.secho("You may want to clean subprocess by:", fg=typer.colors.YELLOW)
             typer.secho(kill_ps, bold=True)
+        for tmp_file in Path(__file__).parent.glob("app_*.py"):
+            tmp_file.unlink()
 
 
 @pytest.fixture(scope="module")
