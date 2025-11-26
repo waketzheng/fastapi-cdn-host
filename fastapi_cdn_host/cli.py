@@ -236,21 +236,25 @@ def dev(
         handle_cache()
         return
     with patch_app(path, remove) as file:
-        if load_bool("FASTCDN_UVICORN"):
-            module = file.stem
-            if file.parent != Path() and file.parent.resolve() != Path.cwd():
-                os.chdir(file.parent)
-            cmd = f"PYTHONPATH=. uvicorn {module}:app"
-            if reload and not load_bool("FASTCDN_NORELOAD"):
-                cmd += " --reload"
-        else:
-            mode = "run" if prod else "dev"
-            cmd = f"PYTHONPATH=. fastapi {mode} {file}"
-            if (not reload and not prod) or load_bool("FASTCDN_NORELOAD"):
-                cmd += " --no-reload"
-        if port:
-            cmd += f" --{port=}"
-        run_shell(cmd)
+        runserver(file, prod, reload, port)
+
+
+def runserver(file: Path, prod: bool, reload: bool, port: int) -> None:
+    if load_bool("FASTCDN_UVICORN"):
+        module = file.stem
+        if file.parent != Path() and file.parent.resolve() != Path.cwd():
+            os.chdir(file.parent)
+        cmd = f"PYTHONPATH=. uvicorn {module}:app"
+        if reload and not load_bool("FASTCDN_NORELOAD"):
+            cmd += " --reload"
+    else:
+        mode = "run" if prod else "dev"
+        cmd = f"PYTHONPATH=. fastapi {mode} {file}"
+        if (not reload and not prod) or load_bool("FASTCDN_NORELOAD"):
+            cmd += " --no-reload"
+    if port:
+        cmd += f" --{port=}"
+    run_shell(cmd)
 
 
 def main() -> None:

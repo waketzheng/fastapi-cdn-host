@@ -1,5 +1,6 @@
 # mypy: no-disallow-untyped-decorators
 import contextlib
+import uuid
 from datetime import datetime
 
 import anyio
@@ -54,3 +55,33 @@ async def test_docs(client: AsyncClient):  # nosec
     assert "/static/redoc" in text
     response = await client.get("/app")
     assert response.status_code == 200
+
+
+def test_load_bool(monkeypatch):
+    uid = uuid.uuid4().hex
+    assert load_bool(f"NOT_EXIST_ENV_{uid}") is False
+    name = "FASTCDN_TEST_" + uuid.uuid4().hex
+    monkeypatch.setenv(name, "1")
+    assert load_bool(name) is True
+    monkeypatch.setenv(name, "0")
+    assert load_bool(name) is False
+    monkeypatch.setenv(name, "true")
+    assert load_bool(name) is True
+    monkeypatch.setenv(name, "false")
+    assert load_bool(name) is False
+    monkeypatch.setenv(name, "True")
+    assert load_bool(name) is True
+    monkeypatch.setenv(name, "False")
+    assert load_bool(name) is False
+    monkeypatch.setenv(name, "on")
+    assert load_bool(name) is True
+    monkeypatch.setenv(name, "off")
+    assert load_bool(name) is False
+    monkeypatch.setenv(name, "yes")
+    assert load_bool(name) is True
+    monkeypatch.setenv(name, "no")
+    assert load_bool(name) is False
+    monkeypatch.setenv(name, "y")
+    assert load_bool(name) is True
+    monkeypatch.setenv(name, "n")
+    assert load_bool(name) is False
