@@ -34,7 +34,7 @@ def run_shell(cmd: str) -> None:
         run_shell('PYTHONPATH=. python main.py')
 
     Will be convert to:
-        subprocess.run(['python', 'main.py'], env={'PYTHONPATH': '.', **os.environ})
+        subprocess.run(['python', 'main.py'], env={**os.environ, 'PYTHONPATH': '.'})
     """
     typer.echo(f"--> {cmd}")
     command = shlex.split(cmd)
@@ -46,7 +46,7 @@ def run_shell(cmd: str) -> None:
             break
         name, value = c.split("=")
         if cmd_env is None:
-            cmd_env = {name: value, **os.environ}
+            cmd_env = {**os.environ, name: value}
         else:
             cmd_env[name] = value
     if cmd_env is not None:

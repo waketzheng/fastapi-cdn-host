@@ -1,6 +1,7 @@
 # mypy: no-disallow-untyped-decorators
 import contextlib
 import os
+import time
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -10,7 +11,7 @@ import pytest
 from asynctor.timing import Timer
 from httpx import AsyncClient, ConnectError
 
-from fastapi_cdn_host.cli import TEMPLATE, load_bool, run_shell, write_app
+from fastapi_cdn_host.cli import TEMPLATE, load_bool, patch_app, run_shell, write_app
 from fastapi_cdn_host.client import CdnHostBuilder
 
 
@@ -124,11 +125,36 @@ class TestRunShell:
 
 
 def test_write_app(mocker, tmp_workdir):
-    dest = Path("main.py")
-    src = Path("app_1.py")
+    from_path = Path("main.py")
+    dest = Path("app_20251127110500.py")
     mock_echo = mocker.patch("typer.echo")
-    write_app(dest, src)
+    write_app(dest, from_path)
     content = dest.read_bytes()
-    assert content.decode() == TEMPLATE.format(src.stem).strip()
+    assert content.decode() == TEMPLATE.format(from_path.stem).strip()
     size = len(content)
     mock_echo.assert_called_once_with(f"Create {dest} with {size=}")
+    write_app(dest, "main_2.py")
+    assert "main_2" in dest.read_text()
+
+
+def test_patch_app(mocker, tmp_workdir):
+    mock_echo = mocker.patch("typer.echo")
+    fmt = "%Y%m%d%H%M%S"
+    path = "main.py"
+    start = datetime.now()
+    with patch_app(path, remove=False) as app_file:
+        assert app_file.suffix == ".py"
+        stem = app_file.stem
+        assert stem.startswith("app_")
+        time_str = stem.replace("app_", "")
+        dt = datetime.strptime(time_str, fmt)
+        assert start.strftime(fmt) <= time_str
+        assert dt < datetime.now()
+    assert app_file.exists()
+    time.sleep(1)
+    with patch_app(path) as app_file_2:
+        assert app_file_2.stem >= app_file.stem
+        assert app_file_2.read_bytes() == app_file.read_bytes()
+    mock_echo.assert_called_with(f"Auto remove temp file: {app_file_2}")
+    assert not app_file_2.exists()
+    app_file.unlink()
