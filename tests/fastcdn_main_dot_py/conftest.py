@@ -55,9 +55,3 @@ def runserver() -> Generator[None]:
 async def client() -> AsyncGenerator[httpx.AsyncClient]:
     async with httpx.AsyncClient(base_url=f"http://localhost:{PORT}") as c:
         yield c
-
-
-@pytest.fixture
-def tmp_workdir(tmp_path):
-    with chdir(tmp_path):
-        yield

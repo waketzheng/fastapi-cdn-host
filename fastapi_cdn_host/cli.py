@@ -1,21 +1,29 @@
 #!/usr/bin/env python
 from __future__ import annotations
 
+import functools
 import os
 import shlex
 import subprocess  # nosec:B404
 import sys
-from collections.abc import AsyncGenerator, Generator
-from contextlib import asynccontextmanager, contextmanager
+from collections.abc import AsyncGenerator, Callable, Generator
+from contextlib import AbstractAsyncContextManager, asynccontextmanager, contextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import Annotated, Any
+from typing import TYPE_CHECKING, Annotated, Any
 
 import anyio
 import typer
 from rich.progress import Progress, SpinnerColumn, TaskID
 
 from .client import CdnHostBuilder, HttpSniff
+
+if TYPE_CHECKING:
+    if sys.version_info >= (3, 11):
+        from typing import Self
+    else:
+        from typing_extensions import Self
+
 
 app = typer.Typer()
 
@@ -96,55 +104,87 @@ def patch_app(path: str | Path, remove: bool = True) -> Generator[Path, None, No
             typer.echo(f"Auto remove temp file: {app_file}")
 
 
+class PercentBar(AbstractAsyncContextManager):
+    default_threshold: Annotated[int, "0-100"] = 80
+    total_seconds: Annotated[int, "Cancel task if reach this value"] = 5
+
+    def __init__(
+        self, msg: str, seconds: int | None = None, color: str = "", **kw: Any
+    ) -> None:
+        self.seconds = seconds or self.total_seconds
+        self.prompt = self.build_prompt(msg, color)
+        self.progress = Progress(**kw)
+
+    @staticmethod
+    def build_prompt(msg: str, color: str | None, suffix: str = ":") -> str:
+        prompt = f"{msg}{suffix}"
+        if color:
+            prompt = f"[{color}]" + prompt
+        return prompt
+
+    async def play(
+        self, progress: Progress, task: TaskID, threshold: int | None = None
+    ) -> None:
+        expected = 1 / 2
+        progress_forward = functools.partial(progress.advance, task)
+
+        # Play quickly: run 80% progress in 1/2 total seconds
+        threshold = threshold or self.default_threshold
+        cost = self.seconds * expected
+        await self.percent_play(cost, threshold, progress_forward)
+
+        # Play slow
+        slow = 100 - threshold
+        cost = self.seconds - cost
+        await self.percent_play(cost, slow, progress_forward)
+
+    @staticmethod
+    async def percent_play(cost: float, percent: int, forward: Callable) -> None:
+        delay = cost / percent
+        for _ in range(percent):
+            await anyio.sleep(delay)
+            forward()
+
+    async def __aenter__(self) -> Self:
+        self.progress.start()
+        self.progress_task = self.progress.add_task(self.prompt, total=100)
+        self.task_group = await anyio.create_task_group().__aenter__()
+        self.task_group.start_soon(self.play, self.progress, self.progress_task)
+        return self
+
+    async def __aexit__(self, *args, **kw) -> None:
+        self.task_group.cancel_scope.cancel()
+        self.progress.update(self.progress_task, completed=100)
+        await self.task_group.__aexit__(*args, **kw)
+        self.progress.__exit__(*args, **kw)
+
+
 @asynccontextmanager
 async def percentbar(msg: str, **kwargs: Any) -> AsyncGenerator[None, None]:
     """Progressbar with custom font color
 
     :param msg: prompt message.
     """
-    seconds = kwargs.pop("seconds", 5)
-    color = kwargs.pop("color", "")
-    total = seconds * 100
+    async with PercentBar(msg, **kwargs):
+        yield
 
-    async def play(progress: Progress, task: TaskID) -> None:
-        expected, threshold = 1 / 2, 0.8
-        cost = seconds * expected
-        quick = int(total * threshold)
-        delay = cost / quick
-        for _ in range(quick):
-            await anyio.sleep(delay)
-            progress.advance(task)
-        cost = seconds - cost
-        slow = total - quick
-        delay = cost / slow
-        for _ in range(slow):
-            await anyio.sleep(delay)
-            progress.advance(task)
 
-    with Progress(**kwargs) as p:
-        prompt = f"{msg}:"
-        if color:
-            prompt = f"[{color}]" + prompt
-        t = p.add_task(prompt, total=total)
-        async with anyio.create_task_group() as tg:
-            tg.start_soon(play, p, t)
-            yield
-            tg.cancel_scope.cancel()
-            p.update(t, completed=total)
+class SpinnerProgress(Progress):
+    def __init__(self, msg: str, color: str | None = None, **kwargs: Any) -> None:
+        self.prompt = PercentBar.build_prompt(msg, color, "...")
+        kwargs.setdefault("transient", True)
+        super().__init__(SpinnerColumn(), *Progress.get_default_columns(), **kwargs)
+
+    def start(self) -> None:
+        super().start()
+        self.add_task(self.prompt, total=None)
 
 
 @contextmanager
 def spinnerbar(
     msg: str, color: str | None = None, **kwargs: Any
 ) -> Generator[None, None, None]:
-    kwargs.setdefault("transient", True)
-    with Progress(
-        SpinnerColumn(), *Progress.get_default_columns(), **kwargs
-    ) as progress:
-        if color:
-            progress.add_task(f"[{color}]{msg}...", total=None)
-        else:
-            progress.add_task(f"{msg}...", total=None)
+    with SpinnerProgress(msg, color, **kwargs):
         yield
 
 

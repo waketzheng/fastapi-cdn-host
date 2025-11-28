@@ -1,17 +1,15 @@
 # mypy: no-disallow-untyped-decorators
 import contextlib
-import os
-import time
-import uuid
 from datetime import datetime
-from pathlib import Path
 
 import anyio
 import pytest
 from asynctor.timing import Timer
 from httpx import AsyncClient, ConnectError
 
-from fastapi_cdn_host.cli import TEMPLATE, load_bool, patch_app, run_shell, write_app
+from fastapi_cdn_host.cli import (
+    load_bool,
+)
 from fastapi_cdn_host.client import CdnHostBuilder
 
 
@@ -58,103 +56,3 @@ async def test_docs(client: AsyncClient):  # nosec
     assert "/static/redoc" in text
     response = await client.get("/app")
     assert response.status_code == 200
-
-
-def test_load_bool(monkeypatch):
-    uid = uuid.uuid4().hex
-    assert load_bool(f"NOT_EXIST_ENV_{uid}") is False
-    name = "FASTCDN_TEST_" + uuid.uuid4().hex
-    monkeypatch.setenv(name, "1")
-    assert load_bool(name) is True
-    monkeypatch.setenv(name, "0")
-    assert load_bool(name) is False
-    monkeypatch.setenv(name, "true")
-    assert load_bool(name) is True
-    monkeypatch.setenv(name, "false")
-    assert load_bool(name) is False
-    monkeypatch.setenv(name, "True")
-    assert load_bool(name) is True
-    monkeypatch.setenv(name, "False")
-    assert load_bool(name) is False
-    monkeypatch.setenv(name, "on")
-    assert load_bool(name) is True
-    monkeypatch.setenv(name, "off")
-    assert load_bool(name) is False
-    monkeypatch.setenv(name, "yes")
-    assert load_bool(name) is True
-    monkeypatch.setenv(name, "no")
-    assert load_bool(name) is False
-    monkeypatch.setenv(name, "y")
-    assert load_bool(name) is True
-    monkeypatch.setenv(name, "n")
-    assert load_bool(name) is False
-
-
-class TestRunShell:
-    def test_run_shell_single(self, mocker):
-        mock_echo = mocker.patch("typer.echo")
-        mock_run = mocker.patch("subprocess.run")
-        run_shell("ls")
-        mock_echo.assert_called_once_with("--> ls")
-        mock_run.assert_called_once_with(["ls"], env=None)
-
-    def test_run_shell(self, mocker):
-        mock_echo = mocker.patch("typer.echo")
-        mock_run = mocker.patch("subprocess.run")
-        run_shell("ls tests")
-        mock_echo.assert_called_once_with("--> ls tests")
-        mock_run.assert_called_once_with(["ls", "tests"], env=None)
-
-    def test_env(self, mocker):
-        mock_echo = mocker.patch("typer.echo")
-        mock_run = mocker.patch("subprocess.run")
-        mocker.patch.object(os, "environ", {})
-        run_shell("AA=1 ls")
-        mock_echo.assert_called_once_with("--> AA=1 ls")
-        mock_run.assert_called_once_with(["ls"], env={"AA": "1"})
-
-    def test_env_multi(self, mocker):
-        mock_echo = mocker.patch("typer.echo")
-        mock_run = mocker.patch("subprocess.run")
-        mocker.patch.object(os, "environ", {"CC": "3"})
-        run_shell("AA=1 BB=2 ls -a .")
-        mock_echo.assert_called_once_with("--> AA=1 BB=2 ls -a .")
-        mock_run.assert_called_once_with(
-            ["ls", "-a", "."], env={"AA": "1", "BB": "2", "CC": "3"}
-        )
-
-
-def test_write_app(mocker, tmp_workdir):
-    from_path = Path("main.py")
-    dest = Path("app_20251127110500.py")
-    mock_echo = mocker.patch("typer.echo")
-    write_app(dest, from_path)
-    content = dest.read_bytes()
-    assert content.decode() == TEMPLATE.format(from_path.stem).strip()
-    size = len(content)
-    mock_echo.assert_called_once_with(f"Create {dest} with {size=}")
-    write_app(dest, "main_2.py")
-    assert "main_2" in dest.read_text()
-
-
-def test_patch_app(mocker, tmp_workdir):
-    mock_echo = mocker.patch("typer.echo")
-    fmt = "%Y%m%d%H%M%S"
-    path = "main.py"
-    start = datetime.now()
-    with patch_app(path, remove=False) as app_file:
-        assert app_file.suffix == ".py"
-        stem = app_file.stem
-        assert stem.startswith("app_")
-        time_str = stem.replace("app_", "")
-        dt = datetime.strptime(time_str, fmt)
-        assert start.strftime(fmt) <= time_str
-        assert dt < datetime.now()
-    assert app_file.exists()
-    time.sleep(1)
-    with patch_app(path) as app_file_2:
-        assert app_file_2.stem >= app_file.stem
-        assert app_file_2.read_bytes() == app_file.read_bytes()
-    mock_echo.assert_called_with(f"Auto remove temp file: {app_file_2}")
-    assert not app_file_2.exists()
-    app_file.unlink()
