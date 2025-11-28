@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import functools
 import inspect
 import logging
@@ -32,7 +33,7 @@ else:
 logger = logging.getLogger("fastapi-cdn-host")
 
 OFFICIAL_REDOC = "https://cdn.redoc.ly/redoc/latest/bundles/"
-DEFAULT_ASSET_PATH = ("/swagger-ui-dist@{version}/", "/redoc@next/bundles/")
+DEFAULT_ASSET_PATH = ("/swagger-ui-dist@{version}/", "/redoc@2/bundles/")
 NORMAL_ASSET_PATH = ("/swagger-ui/{version}/", OFFICIAL_REDOC)
 CdnPathInfoType = tuple[
     Annotated[str, "swagger-ui module path info(must startswith '/')"],
@@ -113,6 +114,7 @@ class CdnHostItem:
 
 
 class CdnHostEnum(Enum):
+    fastly = "https://fastly.jsdelivr.net/npm"
     jsdelivr = "https://cdn.jsdelivr.net/npm"
     unpkg = "https://unpkg.com"
     qiniu = "https://cdn.staticfile.org", NORMAL_ASSET_PATH
@@ -243,7 +245,7 @@ class HttpSniff:
 
 class CdnHostBuilder:
     swagger_ui_version = "5"
-    swagger_ui_full_version = "5.21.0"
+    swagger_ui_full_version = "5.29.1"
     swagger_files = {"css": "swagger-ui.css", "js": "swagger-ui-bundle.js"}
     redoc_file = "redoc.standalone.js"
     default_cache_file = "~/.cache/fastapi-cdn-host/urls.txt"
@@ -636,9 +638,24 @@ class StaticBuilder:
         return None
 
 
+def _parse_asset_url(cdn_host, favicon_url, cache, app) -> AssetUrl:
+    if isinstance(cdn_host, AssetUrl):
+        if favicon_url is not None and favicon_url != cdn_host.favicon:
+            cdn_host.favicon = favicon_url
+        return cdn_host
+    if isinstance(cdn_host, str):
+        if cdn_host == "local":
+            cdn_host = Path("static")
+        else:
+            with contextlib.suppress(KeyError):
+                cdn_host = CdnHostEnum[cdn_host]
+    return CdnHostBuilder(app, cdn_host, favicon_url, cache).run()
+
+
 def patch_docs(
     app: FastAPI,
     cdn_host: CdnHostEnum
+    | Literal["fastly", "jsdelivr", "unpkg", "qiniu", "cdnjs", "local"]
     | list[CdnHostInfoType]
     | CdnHostInfoType
     | Path
@@ -665,12 +682,7 @@ def patch_docs(
         return
     if cdn_host is None and docs_cdn_host is not None:
         cdn_host = docs_cdn_host
-    if isinstance(cdn_host, AssetUrl):
-        if favicon_url is not None and favicon_url != cdn_host.favicon:
-            cdn_host.favicon = favicon_url
-        urls = cdn_host
-    else:
-        urls = CdnHostBuilder(app, cdn_host, favicon_url, cache).run()
+    urls = _parse_asset_url(cdn_host, favicon_url, cache, app)
     route_index: dict[str, int] = {
         getattr(route, "path", ""): index for index, route in enumerate(app.routes)
     }
