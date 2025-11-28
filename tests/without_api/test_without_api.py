@@ -12,13 +12,35 @@ from fastapi_cdn_host.cli import (
     TEMPLATE,
     PercentBar,
     Progress,
+    SpinnerColumn,
+    SpinnerProgress,
     TaskID,
     load_bool,
     patch_app,
     percentbar,
     run_shell,
+    spinnerbar,
     write_app,
 )
+
+
+class Bar:
+    def __init__(self):
+        self.enter = 0
+        self.leave = 0
+
+    async def __aenter__(self):
+        return self.__enter__()
+
+    def __enter__(self):
+        self.enter += 1
+        return self
+
+    def __exit__(self, *args, **kw) -> None:
+        self.leave += 1
+
+    async def __aexit__(self, *args, **kw) -> None:
+        self.__exit__(*args, **kw)
 
 
 def test_load_bool(monkeypatch):
@@ -192,27 +214,50 @@ class TestPercentBar:
             assert bar2 is bar
             assert bar.seconds == 1
             mock_start.assert_called_once()
-            mock_task.assert_called_once_with(bar.prompt, total=100)
+            mock_task.assert_called_once_with(bar.prompt)
             mock_play.assert_called_once_with(bar.progress, task)
         mock_update.assert_called_once_with(task, completed=100)
         mock_exit.assert_called_once()
 
     @pytest.mark.anyio
     async def test_percentbar(self, mocker):
-        class Bar:
-            async def __aenter__(self):
-                return self
-
-            async def __aexit__(self, *args, **kw) -> None:
-                pass
-
         bar = Bar()
         mock_percentbar = mocker.patch(
             "fastapi_cdn_host.cli.PercentBar", return_value=bar
         )
-        # mock_aenter = mocker.patch.object(bar, "__aenter__")
-        # mock_aexit = mocker.patch.object(bar, "__aexit__")
         async with percentbar("", seconds=1):
             mock_percentbar.assert_called_once_with("", seconds=1)
-            # mock_aenter.assert_called_once()
-        # mock_aexit.assert_called_once()
+            assert bar.enter == 1
+        assert bar.leave == 1
+
+
+class TestSpinnerProgress:
+    def test_init(self):
+        p = SpinnerProgress("Hi")
+        assert p.prompt == "Hi..."
+        assert p.live.transient is True
+        assert isinstance(p.columns[0], SpinnerColumn)
+        p2 = SpinnerProgress("Hi", "")
+        assert p2.prompt == "Hi..."
+        p3 = SpinnerProgress("Hi", "red")
+        assert p3.prompt == "[red]Hi..."
+        p4 = SpinnerProgress("Hi", "red", transient=False)
+        assert p4.live.transient is False
+
+    def test_start(self, mocker):
+        p = SpinnerProgress("Hey")
+        mock_start = mocker.patch.object(Progress, "start")
+        mock_task = mocker.patch.object(p, "add_task")
+        p.start()
+        mock_task.assert_called_once_with("Hey...", total=None)
+        mock_start.assert_called_once()
+
+    def test_spinnerbar(self, mocker):
+        bar = Bar()
+        mock_bar = mocker.patch(
+            "fastapi_cdn_host.cli.SpinnerProgress", return_value=bar
+        )
+        with spinnerbar(""):
+            mock_bar.assert_called_once_with("", None)
+            assert bar.enter == 1
+        assert bar.leave == 1

@@ -147,7 +147,7 @@ class PercentBar(AbstractAsyncContextManager):
 
     async def __aenter__(self) -> Self:
         self.progress.start()
-        self.progress_task = self.progress.add_task(self.prompt, total=100)
+        self.progress_task = self.progress.add_task(self.prompt)
         self.task_group = await anyio.create_task_group().__aenter__()
         self.task_group.start_soon(self.play, self.progress, self.progress_task)
         return self
