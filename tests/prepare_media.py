@@ -31,7 +31,7 @@ def main():
     copy_file(pri_cdn / "redoc/next", redoc_file)
     pri_cdn2 = root / "cdn_with_default_asset_path/cdn"
     copy_file(pri_cdn2 / "swagger-ui-dist@5", *swagger_ui_files)
-    copy_file(pri_cdn2 / "redoc@next/bundles", redoc_file)
+    copy_file(pri_cdn2 / "redoc@2/bundles", redoc_file)
     simple_path = root / "simple_asset_path/cdn"
     copy_file(simple_path, redoc_file, favicon_file, *swagger_ui_files)
 

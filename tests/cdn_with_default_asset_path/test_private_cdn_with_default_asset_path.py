@@ -28,7 +28,7 @@ async def client():
 async def test_docs(client: AsyncClient):  # nosec
     css_url = MY_CDN + "/swagger-ui-dist@5/swagger-ui.css"
     js_url = MY_CDN + "/swagger-ui-dist@5/swagger-ui-bundle.js"
-    redoc_url = MY_CDN + "/redoc@next/bundles/redoc.standalone.js"
+    redoc_url = MY_CDN + "/redoc@2/bundles/redoc.standalone.js"
     assert (
         CdnHostBuilder.build_swagger_path("/swagger-ui-dist@{version}/swagger-ui.css")
         == "/swagger-ui-dist@5/swagger-ui.css"
