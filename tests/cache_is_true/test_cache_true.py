@@ -36,13 +36,13 @@ async def _run_test(cache_file, urls, client):
             CdnHostBuilder.build_race_data(list(CdnHostEnum))[0]
         )
         assert urls.css in url_list
-        assert any(i in text for i in url_list)
+        assert any(i in text for i in url_list), text
         for url in url_list:
             host = url.split("://")[-1].split("/")[0]
-            pattern = rf'src=".*{host}[\w/.-]+redoc.*"'
+            pattern = rf'src="(.*{host}[:\w/.-]+redoc.*)"'
             if m := re.search(pattern, text2):
-                print(f"{m.group() = }")
-                redoc_url = m.group()
+                redoc_url = m.group(1)
+                print(f"{m.group() = }; {redoc_url=}")
                 if urls.redoc != redoc_url:
                     urls.redoc = redoc_url
                 # TODO:

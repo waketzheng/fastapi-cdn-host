@@ -1,28 +1,50 @@
 #!/usr/bin/env python
 from __future__ import annotations
 
+import functools
 import os
 import shlex
 import subprocess  # nosec:B404
 import sys
-from collections.abc import AsyncGenerator, Generator
-from contextlib import asynccontextmanager, contextmanager
+from collections.abc import AsyncGenerator, Callable, Generator
+from contextlib import AbstractAsyncContextManager, asynccontextmanager, contextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import Annotated, Any
+from typing import TYPE_CHECKING, Annotated, Any
 
 import anyio
 import typer
-from rich import print
 from rich.progress import Progress, SpinnerColumn, TaskID
 
 from .client import CdnHostBuilder, HttpSniff
 
+if TYPE_CHECKING:
+    if sys.version_info >= (3, 11):
+        from typing import Self
+    else:
+        from typing_extensions import Self
+
+
 app = typer.Typer()
 
 
+def load_bool(name: str) -> bool:
+    v = os.getenv(name)
+    if not v:
+        return False
+    return v.lower() in ("1", "true", "t", "y", "yes", "on")
+
+
 def run_shell(cmd: str) -> None:
-    print(f"--> {cmd}")
+    """Run cmd by subprocess
+
+    Example::
+        run_shell('PYTHONPATH=. python main.py')
+
+    Will be convert to:
+        subprocess.run(['python', 'main.py'], env={**os.environ, 'PYTHONPATH': '.'})
+    """
+    typer.echo(f"--> {cmd}")
     command = shlex.split(cmd)
     cmd_env = None
     index = 0
@@ -32,8 +54,9 @@ def run_shell(cmd: str) -> None:
             break
         name, value = c.split("=")
         if cmd_env is None:
-            cmd_env = os.environ.copy()
-        cmd_env[name] = value
+            cmd_env = {**os.environ, name: value}
+        else:
+            cmd_env[name] = value
     if cmd_env is not None:
         command = command[index:]
     subprocess.run(command, env=cmd_env)  # nosec:B603
@@ -54,10 +77,10 @@ from {} import app
 fastapi_cdn_host.patch_docs(app)
 
 def _runserver() -> int:
-    r = subprocess.run(['fastapi', 'dev', __file__])
+    r = subprocess.run(["fastapi", "dev", __file__, *sys.argv[2:]])
     return int(bool(r.returncode))
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(_runserver())
 """
 
@@ -65,7 +88,7 @@ if __name__ == '__main__':
 def write_app(dest: Path, from_path: str | Path) -> None:
     module = Path(from_path).stem
     size = dest.write_text(TEMPLATE.format(module).strip())
-    print(f"Create {dest} with {size=}")
+    typer.echo(f"Create {dest} with {size=}")
 
 
 @contextmanager
@@ -78,7 +101,62 @@ def patch_app(path: str | Path, remove: bool = True) -> Generator[Path, None, No
     finally:
         if remove:
             app_file.unlink()
-            print(f"Auto remove temp file: {app_file}")
+            typer.echo(f"Auto remove temp file: {app_file}")
+
+
+class PercentBar(AbstractAsyncContextManager):
+    default_threshold: Annotated[int, "0-100"] = 80
+    total_seconds: Annotated[int, "Cancel task if reach this value"] = 5
+
+    def __init__(
+        self, msg: str, seconds: int | None = None, color: str = "", **kw: Any
+    ) -> None:
+        self.seconds = seconds or self.total_seconds
+        self.prompt = self.build_prompt(msg, color)
+        self.progress = Progress(**kw)
+
+    @staticmethod
+    def build_prompt(msg: str, color: str | None, suffix: str = ":") -> str:
+        prompt = f"{msg}{suffix}"
+        if color:
+            prompt = f"[{color}]" + prompt
+        return prompt
+
+    async def play(
+        self, progress: Progress, task: TaskID, threshold: int | None = None
+    ) -> None:
+        expected = 1 / 2
+        progress_forward = functools.partial(progress.advance, task)
+
+        # Play quickly: run 80% progress in 1/2 total seconds
+        threshold = threshold or self.default_threshold
+        cost = self.seconds * expected
+        await self.percent_play(cost, threshold, progress_forward)
+
+        # Play slow
+        slow = 100 - threshold
+        cost = self.seconds - cost
+        await self.percent_play(cost, slow, progress_forward)
+
+    @staticmethod
+    async def percent_play(cost: float, percent: int, forward: Callable) -> None:
+        delay = cost / percent
+        for _ in range(percent):
+            await anyio.sleep(delay)
+            forward()
+
+    async def __aenter__(self) -> Self:
+        self.progress.start()
+        self.progress_task = self.progress.add_task(self.prompt)
+        self.task_group = await anyio.create_task_group().__aenter__()
+        self.task_group.start_soon(self.play, self.progress, self.progress_task)
+        return self
+
+    async def __aexit__(self, *args, **kw) -> None:
+        self.task_group.cancel_scope.cancel()
+        self.progress.update(self.progress_task, completed=100)
+        await self.task_group.__aexit__(*args, **kw)
+        self.progress.__exit__(*args, **kw)
 
 
 @asynccontextmanager
@@ -87,49 +165,26 @@ async def percentbar(msg: str, **kwargs: Any) -> AsyncGenerator[None, None]:
 
     :param msg: prompt message.
     """
-    seconds = kwargs.pop("seconds", 5)
-    color = kwargs.pop("color", "")
-    total = seconds * 100
+    async with PercentBar(msg, **kwargs):
+        yield
 
-    async def play(progress: Progress, task: TaskID) -> None:
-        expected, threshold = 1 / 2, 0.8
-        cost = seconds * expected
-        quick = int(total * threshold)
-        delay = cost / quick
-        for _ in range(quick):
-            await anyio.sleep(delay)
-            progress.advance(task)
-        cost = seconds - cost
-        slow = total - quick
-        delay = cost / slow
-        for _ in range(slow):
-            await anyio.sleep(delay)
-            progress.advance(task)
 
-    with Progress(**kwargs) as p:
-        prompt = f"{msg}:"
-        if color:
-            prompt = f"[{color}]" + prompt
-        t = p.add_task(prompt, total=total)
-        async with anyio.create_task_group() as tg:
-            tg.start_soon(play, p, t)
-            yield
-            tg.cancel_scope.cancel()
-            p.update(t, completed=total)
+class SpinnerProgress(Progress):
+    def __init__(self, msg: str, color: str | None = None, **kwargs: Any) -> None:
+        self.prompt = PercentBar.build_prompt(msg, color, "...")
+        kwargs.setdefault("transient", True)
+        super().__init__(SpinnerColumn(), *Progress.get_default_columns(), **kwargs)
+
+    def start(self) -> None:
+        super().start()
+        self.add_task(self.prompt, total=None)
 
 
 @contextmanager
 def spinnerbar(
     msg: str, color: str | None = None, **kwargs: Any
 ) -> Generator[None, None, None]:
-    kwargs.setdefault("transient", True)
-    with Progress(
-        SpinnerColumn(), *Progress.get_default_columns(), **kwargs
-    ) as progress:
-        if color:
-            progress.add_task(f"[{color}]{msg}...", total=None)
-        else:
-            progress.add_task(f"{msg}...", total=None)
+    with SpinnerProgress(msg, color, **kwargs):
         yield
 
 
@@ -140,15 +195,15 @@ async def download_offline_assets(dirname: str | Path, timeout: float = 30) -> N
     )
     if not await static_root.exists():
         await static_root.mkdir(parents=True)
-        print(f"Directory {static_root} created.")
+        typer.echo(f"Directory {static_root} created.")
     else:
         async for p in static_root.glob("swagger-ui*.js"):
             relative_path = p.relative_to(cwd)
-            print(f"{relative_path} already exists. abort!")
+            typer.echo(f"{relative_path} already exists. abort!")
             return
     async with percentbar("Comparing cdn hosts response speed"):
         urls = await CdnHostBuilder.sniff_the_fastest()
-    print("Result:", urls)
+    typer.echo(f"Result: {urls}")
     with spinnerbar("Fetching files from cdn", color="yellow"):
         url_list = [urls.js, urls.css, urls.redoc]
         contents = await HttpSniff.bulk_fetch(
@@ -156,12 +211,13 @@ async def download_offline_assets(dirname: str | Path, timeout: float = 30) -> N
         )
         for url, content in zip(url_list, contents):
             if not content:
-                print(f"[red]ERROR:[/red] Failed to fetch content from {url}")
+                red_head = typer.style("ERROR:", fg=typer.colors.RED)
+                typer.echo(red_head + f" Failed to fetch content from {url}")
             else:
                 path = static_root / Path(url).name
                 size = await path.write_bytes(content)
-                print(f"Write to {path} with {size=}")
-    print("Done.")
+                typer.echo(f"Write to {path} with {size=}")
+    typer.secho("Done.", fg=typer.colors.GREEN)
 
 
 def handle_cache() -> None:
@@ -229,13 +285,25 @@ def dev(
         handle_cache()
         return
     with patch_app(path, remove) as file:
+        runserver(file, prod, reload, port)
+
+
+def runserver(file: Path, prod: bool, reload: bool, port: int) -> None:
+    if load_bool("FASTCDN_UVICORN"):
+        module = file.stem
+        if file.parent != Path() and file.parent.resolve() != Path.cwd():
+            os.chdir(file.parent)
+        cmd = f"PYTHONPATH=. uvicorn {module}:app"
+        if reload and not load_bool("FASTCDN_NORELOAD"):
+            cmd += " --reload"
+    else:
         mode = "run" if prod else "dev"
         cmd = f"PYTHONPATH=. fastapi {mode} {file}"
-        if port:
-            cmd += f" --{port=}"
-        if not reload and not prod:
+        if (not reload and not prod) or load_bool("FASTCDN_NORELOAD"):
             cmd += " --no-reload"
-        run_shell(cmd)
+    if port:
+        cmd += f" --{port=}"
+    run_shell(cmd)
 
 
 def main() -> None:
