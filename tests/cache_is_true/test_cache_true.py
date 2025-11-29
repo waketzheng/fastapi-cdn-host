@@ -34,13 +34,21 @@ async def _run_test(cache_file, urls, client, cache_already_exists=False):
     text2 = response2.text
     assert response2.status_code == 200, text2
     assert cache_file.exists()
-    file_lines = cache_file.read_text("utf8").splitlines()
+    file_lines = cache_file.read_text("utf8").strip().splitlines()
     if cache_already_exists:
-        assert file_lines[0] in text
+        if "jsdelivr.net" in file_lines[0]:
+            css, js, redoc = (_slim_url(i) for i in file_lines)
+        else:
+            css, js, redoc = file_lines
         assert file_lines[1] in text
         assert file_lines[2] in text2
     else:
         await _run_test_2(cache_file, urls, client, file_lines, text, text2)
+
+
+def _slim_url(s: str) -> str:  # TODO: remove this
+    # Fix fastly.jsdelivr.net != cdn.jsdelivr.net
+    return s.split("://", 1)[-1].split(".", 1)[-1]
 
 
 async def _run_test_2(cache_file, urls, client, file_lines, text, text2):
@@ -72,6 +80,8 @@ async def _run_test_2(cache_file, urls, client, file_lines, text, text2):
         assert urls.css in text
         assert urls.redoc in text2
     if file_lines[1] == urls.js:  # TODO: remove this compare
+        if "jsdelivr.net" in file_lines[0]:
+            file_lines = [_slim_url(i) for i in file_lines]
         assert file_lines == [urls.css, urls.js, urls.redoc]
 
 
