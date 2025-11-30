@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import cast
 
 import pytest
+from fastapi import FastAPI
 
 from fastapi_cdn_host.cli import (
     TEMPLATE,
@@ -22,6 +23,7 @@ from fastapi_cdn_host.cli import (
     spinnerbar,
     write_app,
 )
+from fastapi_cdn_host.client import AssetUrl, CdnHostEnum, _parse_asset_url
 
 
 class Bar:
@@ -261,3 +263,29 @@ class TestSpinnerProgress:
             mock_bar.assert_called_once_with("", None)
             assert bar.enter == 1
         assert bar.leave == 1
+
+
+class TestParseAssetUrl:
+    @pytest.fixture
+    def mock_builder(self, mocker):
+        yield mocker.patch("fastapi_cdn_host.client.CdnHostBuilder")
+
+    @pytest.fixture
+    def app(self):
+        yield FastAPI()
+
+    def test_simple(self):
+        a = AssetUrl(css="", js="", redoc="", favicon="")
+        assert _parse_asset_url(a, None, None, None) == a
+
+    def test_local(self, mock_builder, app):
+        _parse_asset_url("local", None, False, app)
+        mock_builder.assert_called_once_with(app, Path("static"), None, False)
+
+    def test_fastly(self, mock_builder, app):
+        _parse_asset_url("fastly", None, False, app)
+        mock_builder.assert_called_once_with(app, CdnHostEnum.fastly, None, False)
+
+    def test_qiniu(self, mock_builder, app):
+        _parse_asset_url("qiniu", None, False, app)
+        mock_builder.assert_called_once_with(app, CdnHostEnum.qiniu, None, False)

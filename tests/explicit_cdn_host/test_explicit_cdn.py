@@ -18,7 +18,7 @@ async def test_docs(client: AsyncClient):  # nosec
     host = str(CdnHostEnum.unpkg.value)
     css_url = host + "/swagger-ui-dist@5/swagger-ui.css"
     js_url = host + "/swagger-ui-dist@5/swagger-ui-bundle.js"
-    redoc_url = host + "/redoc@next/bundles/redoc.standalone.js"
+    redoc_url = host + "/redoc@2/bundles/redoc.standalone.js"
     favicon_url = host + "/favicon.ico"
     response = await client.get("/docs")
     text = response.text

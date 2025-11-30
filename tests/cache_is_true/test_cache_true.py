@@ -2,6 +2,7 @@
 import importlib
 import os
 import re
+import shutil
 import sys
 from pathlib import Path
 
@@ -22,7 +23,9 @@ async def client():
         yield c
 
 
-async def _run_test(cache_file, urls, client):
+async def _run_test(cache_file, urls, client, cache_already_exists=False):
+    response = await client.get("/app")
+    assert response.status_code == 200
     response = await client.get("/docs")
     text = response.text
     assert response.status_code == 200, text
@@ -30,6 +33,26 @@ async def _run_test(cache_file, urls, client):
     response2 = await client.get("/redoc")
     text2 = response2.text
     assert response2.status_code == 200, text2
+    assert cache_file.exists()
+    file_lines = cache_file.read_text("utf8").strip().splitlines()
+    if cache_already_exists:
+        if "jsdelivr.net" in file_lines[0]:
+            css, js, redoc = (_slim_url(i) for i in file_lines)
+        else:
+            css, js, redoc = file_lines
+        assert css in text
+        assert js in text
+        assert redoc in text2
+    else:
+        await _run_test_2(cache_file, urls, client, file_lines, text, text2)
+
+
+def _slim_url(s: str) -> str:  # TODO: remove this
+    # Fix fastly.jsdelivr.net != cdn.jsdelivr.net
+    return s.split("://", 1)[-1].split(".", 1)[-1]
+
+
+async def _run_test_2(cache_file, urls, client, file_lines, text, text2):
     if urls.js not in text:
         # Sometimes there are several cdn hosts that have good response speed.
         url_list = await HttpSniff.get_fast_hosts(
@@ -57,12 +80,12 @@ async def _run_test(cache_file, urls, client):
         assert urls.js in text
         assert urls.css in text
         assert urls.redoc in text2
-    response = await client.get("/app")
-    assert response.status_code == 200
-    assert cache_file.exists()
-    file_lines = cache_file.read_text("utf8").splitlines()
     if file_lines[1] == urls.js:  # TODO: remove this compare
-        assert file_lines == [urls.css, urls.js, urls.redoc]
+        expected = [urls.css, urls.js, urls.redoc]
+        if "jsdelivr.net" in file_lines[0]:
+            file_lines = [_slim_url(i) for i in file_lines]
+            expected = [_slim_url(i) for i in expected]
+        assert file_lines == expected
 
 
 @pytest.mark.anyio
@@ -73,16 +96,16 @@ async def test_docs(client: AsyncClient):  # nosec
         urls = AssetUrl(css=lines[0], js=lines[1], redoc=lines[2])
     else:
         urls = await CdnHostBuilder.sniff_the_fastest()
-    await _run_test(cache_file, urls, client)
+    await _run_test(cache_file, urls, client, cache_already_exists)
+
     if cache_already_exists:
-        cache_file.unlink()
-        cache_file.parent.rmdir()
+        shutil.rmtree(cache_file.parent)
         urls = await CdnHostBuilder.sniff_the_fastest()
     else:
         lines = cache_file.read_text("utf8").splitlines()
         urls = AssetUrl(css=lines[0], js=lines[1], redoc=lines[2])
     importlib.reload(main)
-    await _run_test(cache_file, urls, client)
+    await _run_test(cache_file, urls, client, not cache_already_exists)
 
 
 def test_cache_file(mocker, tmp_path):
