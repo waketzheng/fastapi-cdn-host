@@ -40,8 +40,9 @@ async def _run_test(cache_file, urls, client, cache_already_exists=False):
             css, js, redoc = (_slim_url(i) for i in file_lines)
         else:
             css, js, redoc = file_lines
-        assert file_lines[1] in text
-        assert file_lines[2] in text2
+        assert css in text
+        assert js in text
+        assert redoc in text2
     else:
         await _run_test_2(cache_file, urls, client, file_lines, text, text2)
 
@@ -80,9 +81,11 @@ async def _run_test_2(cache_file, urls, client, file_lines, text, text2):
         assert urls.css in text
         assert urls.redoc in text2
     if file_lines[1] == urls.js:  # TODO: remove this compare
+        expected = [urls.css, urls.js, urls.redoc]
         if "jsdelivr.net" in file_lines[0]:
             file_lines = [_slim_url(i) for i in file_lines]
-        assert file_lines == [urls.css, urls.js, urls.redoc]
+            expected = [_slim_url(i) for i in expected]
+        assert file_lines == expected
 
 
 @pytest.mark.anyio
