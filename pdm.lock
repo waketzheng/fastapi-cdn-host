@@ -70,14 +70,14 @@ files = [
 
 [[package]]
 name = "asynctor"
-version = "0.11.2"
+version = "0.11.4"
 summary = ""
 dependencies = [
     "anyio; python_full_version >= \"3.10\"",
 ]
 files = [
-    {file = "asynctor-0.11.2-py3-none-any.whl", hash = "sha256:ce7114b11602ed4803b21c5000d0502183894fc7897b9ec54450ace661aec614"},
-    {file = "asynctor-0.11.2.tar.gz", hash = "sha256:76dcdd2841e54b69b61b9180304a56ee75382cdd2ee0364cc931bc307e7806c5"},
+    {file = "asynctor-0.11.4-py3-none-any.whl", hash = "sha256:fb2fa9f000505e586b20f69f642e1e00556b8ab26f3e65a86eb8297c666c7b2a"},
+    {file = "asynctor-0.11.4.tar.gz", hash = "sha256:9e696a711b884d1442cf0313ad75d090e91be96b1057ec2dcf88f07299f0e453"},
 ]
 
 [[package]]
@@ -498,7 +498,7 @@ files = [
 
 [[package]]
 name = "fastapi"
-version = "0.122.0"
+version = "0.123.9"
 summary = ""
 dependencies = [
     "annotated-doc",
@@ -508,8 +508,8 @@ dependencies = [
     "typing-extensions",
 ]
 files = [
-    {file = "fastapi-0.122.0-py3-none-any.whl", hash = "sha256:a456e8915dfc6c8914a50d9651133bd47ec96d331c5b44600baa635538a30d67"},
-    {file = "fastapi-0.122.0.tar.gz", hash = "sha256:cd9b5352031f93773228af8b4c443eedc2ac2aa74b27780387b853c3726fb94b"},
+    {file = "fastapi-0.123.9-py3-none-any.whl", hash = "sha256:f54c69f23db14bd3dbcdfaf3fdce0483ca5f499512380c8e379a70cda30aa920"},
+    {file = "fastapi-0.123.9.tar.gz", hash = "sha256:ab33d672d8e1cc6e0b49777eb73c32ccf20761011f5ca16755889ab406fd1de0"},
 ]
 
 [[package]]

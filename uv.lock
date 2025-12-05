@@ -68,7 +68,7 @@ wheels = [
 
 [[package]]
 name = "asynctor"
-version = "0.11.2"
+version = "0.11.4"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
     "python_full_version >= '3.10'",
@@ -76,9 +76,9 @@ resolution-markers = [
 dependencies = [
     { name = "anyio", marker = "python_full_version >= '3.10'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/91/2b/461f20e6a2c9a9d98084cd13fd08fd25dfdfcb58241be29ade081ddd99ae/asynctor-0.11.2.tar.gz", hash = "sha256:76dcdd2841e54b69b61b9180304a56ee75382cdd2ee0364cc931bc307e7806c5" }
+sdist = { url = "https://files.pythonhosted.org/packages/8b/5b/69b03ce9bb81f65dc3cd9df2ab1d534fb137f20389ea57c7bed7595adf40/asynctor-0.11.4.tar.gz", hash = "sha256:9e696a711b884d1442cf0313ad75d090e91be96b1057ec2dcf88f07299f0e453" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/70/f6/cc8300697d32af8a0e953032f27789b69fff39073faf8516f5a890dbe00d/asynctor-0.11.2-py3-none-any.whl", hash = "sha256:ce7114b11602ed4803b21c5000d0502183894fc7897b9ec54450ace661aec614" },
+    { url = "https://files.pythonhosted.org/packages/76/30/1b563233e61c216ce43007dfac3a0e494bc561eac8326082c1eb5c5d58e6/asynctor-0.11.4-py3-none-any.whl", hash = "sha256:fb2fa9f000505e586b20f69f642e1e00556b8ab26f3e65a86eb8297c666c7b2a" },
 ]
 
 [[package]]
@@ -529,7 +529,7 @@ wheels = [
 
 [[package]]
 name = "fastapi"
-version = "0.122.0"
+version = "0.123.9"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "annotated-doc" },
@@ -538,9 +538,9 @@ dependencies = [
     { name = "starlette", version = "0.50.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b2/de/3ee97a4f6ffef1fb70bf20561e4f88531633bb5045dc6cebc0f8471f764d/fastapi-0.122.0.tar.gz", hash = "sha256:cd9b5352031f93773228af8b4c443eedc2ac2aa74b27780387b853c3726fb94b" }
+sdist = { url = "https://files.pythonhosted.org/packages/2c/01/c3fb48c0135d89586a03c3e2c5bc04540dda52079a1af5cac4a63598efb9/fastapi-0.123.9.tar.gz", hash = "sha256:ab33d672d8e1cc6e0b49777eb73c32ccf20761011f5ca16755889ab406fd1de0" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7a/93/aa8072af4ff37b795f6bbf43dcaf61115f40f49935c7dbb180c9afc3f421/fastapi-0.122.0-py3-none-any.whl", hash = "sha256:a456e8915dfc6c8914a50d9651133bd47ec96d331c5b44600baa635538a30d67" },
+    { url = "https://files.pythonhosted.org/packages/db/15/a785e992a27620e022d0bc61b6c897ec14cff07c5ab7ff9f27651a21570b/fastapi-0.123.9-py3-none-any.whl", hash = "sha256:f54c69f23db14bd3dbcdfaf3fdce0483ca5f499512380c8e379a70cda30aa920" },
 ]
 
 [[package]]
@@ -564,7 +564,7 @@ cli = [
 dev = [
     { name = "a2wsgi" },
     { name = "asynctor", version = "0.9.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
-    { name = "asynctor", version = "0.11.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
+    { name = "asynctor", version = "0.11.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "bandit", version = "1.8.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "bandit", version = "1.9.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "fast-dev-cli", version = "0.18.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
