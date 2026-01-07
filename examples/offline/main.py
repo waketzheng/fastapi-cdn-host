@@ -3,12 +3,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Annotated
 
+import fastapi_cdn_host
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
-
-import fastapi_cdn_host
 
 app = FastAPI(title="HTTP redirect center")
 BASE_DIR = Path(__file__).parent.resolve()

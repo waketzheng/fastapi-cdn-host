@@ -47,7 +47,10 @@ async def test_find():
     paths = ("sleep?seconds={}", "wait/{}", "delay/{}")
     host = "http://127.0.0.1:8000/"
     with UvicornServer().run_in_thread():
-        urls = [host + path.format(seconds) for seconds, path in zip(waits, paths)]
+        urls = [
+            host + path.format(seconds)
+            for seconds, path in zip(waits, paths, strict=False)
+        ]
         fastest = await timeit(HttpSniff.find_fastest_host)(urls, total_seconds=0.1)
         assert fastest == urls[0]
         fastest = await timeit(HttpSniff.find_fastest_host)(urls, loop_interval=0.1)

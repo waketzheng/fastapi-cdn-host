@@ -209,7 +209,7 @@ async def download_offline_assets(dirname: str | Path, timeout: float = 30) -> N
         contents = await HttpSniff.bulk_fetch(
             url_list, get_content=True, total_seconds=timeout
         )
-        for url, content in zip(url_list, contents):
+        for url, content in zip(url_list, contents, strict=False):
             if not content:
                 red_head = typer.style("ERROR:", fg=typer.colors.RED)
                 typer.echo(red_head + f" Failed to fetch content from {url}")

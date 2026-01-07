@@ -1,8 +1,17 @@
 # ChangeLog
 
-## 0.9
+## 0.10
 
 *(Unreleased)*
+
+### [0.10.0]
+
+#### Changed
+
+- feat: drop support for Python3.9
+
+## 0.9
+
 
 ### [0.9.3](../../releases/tag/v0.9.3) - 2025-12-01
 

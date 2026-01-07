@@ -6,10 +6,9 @@ import anyio
 import pytest
 from asynctor.timing import Timer
 from httpx import AsyncClient, ConnectError
+from loguru import logger
 
-from fastapi_cdn_host.cli import (
-    load_bool,
-)
+from fastapi_cdn_host.cli import load_bool
 from fastapi_cdn_host.client import CdnHostBuilder
 
 
@@ -41,7 +40,21 @@ async def test_docs(client: AsyncClient):  # nosec
     swagger_ui = CdnHostBuilder.swagger_files
     js_url = "/static/" + swagger_ui["js"]
     css_url = "/static/" + swagger_ui["css"]
-    response = await client.get(css_url)
+    try:
+        response = await client.get(css_url)
+    except ConnectError:
+        await anyio.sleep(10)
+        try:
+            response = await client.get(css_url)
+        except ConnectError as e:
+            from conftest import Option
+
+            port = Option.get_port()
+            logger.debug(
+                f"Got {type(e)}({css_url=}), try: `http :{port}/docs` to find reason"
+            )
+            await anyio.sleep(3 * 60)  # sleep to found out why does it get error
+            raise
     assert response.status_code == 200, f"{response.url=};{response.text=}"
     response = await client.get(js_url)
     assert response.status_code == 200, response.text

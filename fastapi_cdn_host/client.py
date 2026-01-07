@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from ssl import SSLError
-from typing import Annotated, Any, Literal, TypeVar, Union, cast, overload
+from typing import Annotated, Any, Literal, TypeVar, cast, overload
 
 import anyio
 import httpx
@@ -41,14 +41,11 @@ CdnPathInfoType = tuple[
 ]
 CdnDomainType = Annotated[str, "Host for swagger-ui/redoc"]
 StrictCdnHostInfoType = tuple[CdnDomainType, CdnPathInfoType]
-CdnHostInfoType = Union[
-    Annotated[CdnDomainType, f"Will use DEFAULT_ASSET_PATH: {DEFAULT_ASSET_PATH}"],
-    tuple[CdnDomainType, Annotated[str, "In case of swagger/redoc has the same path"]],
-    StrictCdnHostInfoType,
-]
-DocsCdnHostType = Union[
-    Path, "CdnHostEnum", str, list[CdnHostInfoType], CdnHostInfoType
-]
+CdnHostInfoType = (
+    Annotated[CdnDomainType, f"Will use DEFAULT_ASSET_PATH: {DEFAULT_ASSET_PATH}"]
+    | tuple[CdnDomainType, Annotated[str, "In case of swagger/redoc has the same path"]]
+    | StrictCdnHostInfoType
+)
 T_Retval = TypeVar("T_Retval")
 PosArgsT = TypeVarTuple("PosArgsT")
 LockFunc = Callable[[Request], Any]
@@ -140,6 +137,9 @@ class CdnHostEnum(Enum):
         return [*host_infos, *cls]
 
 
+DocsCdnHostType = Path | CdnHostEnum | str | list[CdnHostInfoType] | CdnHostInfoType
+
+
 @dataclass
 class AssetUrl:
     css: Annotated[str, "URL of swagger-ui.css"]
@@ -228,7 +228,7 @@ class HttpSniff:
                         break
         if get_content:
             return [i or b"" for i in results]
-        return [url for url, res in zip(urls, results) if res is not None]
+        return [url for url, res in zip(urls, results, strict=False) if res is not None]
 
     @classmethod
     async def get_fast_hosts(
