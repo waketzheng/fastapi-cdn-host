@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 import sys
 
+import fastapi_cdn_host
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
-
-import fastapi_cdn_host
 
 app = FastAPI(title="HTTP redirect center")
 fastapi_cdn_host.patch_docs(app)

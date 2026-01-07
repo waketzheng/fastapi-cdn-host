@@ -4,10 +4,10 @@ import calendar
 import sys
 from collections.abc import AsyncGenerator
 from datetime import datetime
+from typing import TypeAlias
 
 from fastapi import FastAPI, HTTPException, Request, status
 from httpx import ASGITransport, AsyncClient
-from typing_extensions import TypeAlias
 
 TestClientType: TypeAlias = AsyncGenerator[AsyncClient, None]
 

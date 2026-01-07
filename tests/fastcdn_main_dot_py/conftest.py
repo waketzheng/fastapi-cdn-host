@@ -1,6 +1,5 @@
 import os
 import random
-import sys
 from collections.abc import AsyncGenerator, Generator
 from multiprocessing import Process
 from pathlib import Path
@@ -10,29 +9,23 @@ import pytest
 import typer
 from asynctor.utils import Shell
 
-if sys.version_info >= (3, 11):
-    from contextlib import chdir
-else:
-    from contextlib import contextmanager
 
-    @contextmanager
-    def chdir(dst: Path):
-        src = Path.cwd()
-        os.chdir(dst)
-        try:
-            yield
-        finally:
-            os.chdir(src)
+class Option:
+    _port: int = 0
 
-
-PORT = random.randint(9000, 9999)
+    @classmethod
+    def get_port(cls) -> int:
+        if not cls._port:
+            cls._port = random.randint(9000, 9999)
+        return cls._port
 
 
 @pytest.fixture(scope="session", autouse=True)
 def runserver() -> Generator[None]:
     if not Path("static").exists():
         Shell("fastcdn offline").run()
-    cmd = f"fastcdn main.py --port={PORT}"
+    port = Option.get_port()
+    cmd = f"fastcdn main.py --port={port}"
     env = {"FASTCDN_UVICORN": "1", "FASTCDN_NORELOAD": "1", **os.environ}
     p = Process(target=Shell(cmd, env=env).run)
     p.start()
@@ -40,7 +33,7 @@ def runserver() -> Generator[None]:
         yield
     finally:
         p.terminate()
-        leftover = f"ps aux|grep fastapi-cdn-host|grep 'port={PORT}'|grep -v grep"
+        leftover = f"ps aux|grep fastapi-cdn-host|grep 'port={port}'|grep -v grep"
         kill_ps = leftover + "| awk '{print $2}' |xargs -I {} kill -9 {}"
         if Shell(leftover).capture_output().strip():
             Shell(kill_ps).run()
@@ -53,5 +46,6 @@ def runserver() -> Generator[None]:
 
 @pytest.fixture(scope="module")
 async def client() -> AsyncGenerator[httpx.AsyncClient]:
-    async with httpx.AsyncClient(base_url=f"http://localhost:{PORT}") as c:
+    port = Option.get_port()
+    async with httpx.AsyncClient(base_url=f"http://localhost:{port}") as c:
         yield c
