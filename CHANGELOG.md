@@ -8,7 +8,8 @@
 
 #### Changed
 
-- feat: drop support for Python3.9
+- feat: drop support for Python3.9 (#39)
+- refactor: migrate from mypy to ty
 
 ## 0.9
 
