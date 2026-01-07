@@ -38,7 +38,8 @@ _check:
 check: deps _build _check
 
 _lint:
-	pdm run fast lint $(options)
+	./scripts/format.py
+	pdm run ty check $(options)
 lint: deps _build _lint
 
 _test:

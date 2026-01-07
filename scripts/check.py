@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 """
-Check style by `ruff` and verify type hints by `mypy`,
+Check style by `ruff` and verify type hints by `ty`,
 then run `bandit -r <package>` to find security issue.
 
 
@@ -26,7 +26,7 @@ _tool = Tools.pdm
 
 TOOL = getattr(_tool, "value", str(_tool))
 PREPARE = "{0} run ruff --version || {0} install".format(TOOL)
-CMD = "ruff format --check && ruff check && mypy . && bandit -c pyproject.toml -r ."
+CMD = "ruff format --check && ruff check && ty check && bandit -c pyproject.toml -r ."
 
 parent = os.path.abspath(os.path.dirname(__file__))
 work_dir = os.path.dirname(parent)

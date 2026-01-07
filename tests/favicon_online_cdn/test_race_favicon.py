@@ -1,18 +1,10 @@
 # mypy: no-disallow-untyped-decorators
 import pytest
+from asynctor import timeit
 from httpx import AsyncClient
 from main import app
 
 from fastapi_cdn_host.client import CdnHostBuilder, CdnHostEnum, HttpSniff
-
-try:
-    from asynctor import timeit
-except ImportError:
-
-    def timeit(f):  # type:ignore
-        return f
-
-
 from fastapi_cdn_host.utils import TestClient
 
 
@@ -24,10 +16,8 @@ async def client():
 
 @pytest.mark.anyio
 async def test_docs(client: AsyncClient):  # nosec
-    if timeit is None:
+    with timeit("CdnHostBuilder.sniff_the_fastest"):
         urls = await CdnHostBuilder.sniff_the_fastest()
-    else:
-        urls = await timeit(CdnHostBuilder.sniff_the_fastest)()
     response = await client.get("/docs")
     text = response.text
     assert response.status_code == 200, text
