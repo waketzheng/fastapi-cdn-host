@@ -35,6 +35,9 @@ jobs:
         run: |
           uv tool install pdm
           pdm config use_uv true
+      - name: Setup ty
+        run: |
+          uv tool install ty
       - name: Install requirements
         run: uvx --from fastdevcli-slim fast deps --uv
       - uses: astral-sh/ruff-action@v3

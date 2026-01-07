@@ -38,7 +38,8 @@ _check:
 check: deps _build _check
 
 _lint:
-	pdm run fast lint $(options)
+	./scripts/format.py
+	pdm run ty check $(options)
 lint: deps _build _lint
 
 _test:
@@ -50,8 +51,7 @@ _style:
 style: deps _style
 
 _build:
-	rm -fR dist/
-	uv build --verbose
+	uv build --clear --verbose
 build: deps _build
 
 publish: build
@@ -72,7 +72,7 @@ venv313:
 
 _verify: up lock
 	$(MAKE) venv options=--force
-	$(MAKE) venv version=3.9 options=--force
+	$(MAKE) venv version=3.10 options=--force
 	$(MAKE) venv313 options=--force
 	$(MAKE) show
 	$(MAKE) deps

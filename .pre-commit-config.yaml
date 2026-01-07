@@ -16,7 +16,7 @@ repos:
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     # Ruff version.
-    rev: v0.14.8
+    rev: v0.14.10
     hooks:
       # Run the linter.
       - id: ruff
@@ -24,14 +24,17 @@ repos:
       # Run the formatter.
       - id: ruff-format
 
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.19.0
-    hooks:
-      - id: mypy
-
   - repo: https://github.com/PyCQA/bandit
     rev: 1.9.2
     hooks:
     - id: bandit
       args: ["-c", "pyproject.toml"]
       additional_dependencies: ["bandit[toml]"]
+
+  - repo: local
+    hooks:
+      - id: tycheck
+        name: check type hints by ty
+        entry: pdm run ty check
+        language: system
+        types: [python]
