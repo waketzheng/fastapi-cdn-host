@@ -9,7 +9,7 @@
 #### Changed
 
 - feat: drop support for Python3.9 (#39)
-- refactor: migrate from mypy to ty
+- refactor: migrate from mypy to ty (#40)
 
 ## 0.9
 
