@@ -2,4 +2,5 @@
 
 set -e
 
-fast upload
+echo WARNING: This script was deprecated! Use github action instead.
+python -c "import sys;sys.exit(1)"
