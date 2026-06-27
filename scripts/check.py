@@ -37,7 +37,7 @@ if os.getcwd() != work_dir:
 def run_and_echo(cmd):
     # type: (str) -> int
     print("--> {}".format(cmd))
-    return os.system(cmd)
+    return os.system(cmd)  # ty:ignore[deprecated]
 
 
 # Ensure lint tools installed

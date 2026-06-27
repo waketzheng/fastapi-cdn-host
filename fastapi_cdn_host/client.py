@@ -26,9 +26,9 @@ from fastapi.routing import APIRoute, Mount
 from fastapi.staticfiles import StaticFiles
 
 if sys.version_info >= (3, 11):
-    from typing import ParamSpec, TypeVarTuple, Unpack
+    from typing import ParamSpec, Self, TypeVarTuple, Unpack
 else:
-    from typing_extensions import ParamSpec, TypeVarTuple, Unpack
+    from typing_extensions import ParamSpec, Self, TypeVarTuple, Unpack
 
 logger = logging.getLogger("fastapi-cdn-host")
 
@@ -126,7 +126,7 @@ class CdnHostEnum(Enum):
     @classmethod
     def extend(
         cls, *host: StrictCdnHostInfoType | CdnHostItem
-    ) -> list[CdnHostInfoType]:
+    ) -> list[CdnHostInfoType | Self]:
         host_infos: list[StrictCdnHostInfoType] = []
         for i in host:
             if isinstance(i, CdnHostItem):
@@ -279,6 +279,24 @@ class CdnHostBuilder:
 
         return result[0]
 
+    def _sooner(
+        self,
+        cdn_host: CdnHostEnum | str | list[CdnHostInfoType] | CdnHostInfoType,
+        favicon: str | None,
+    ) -> AssetUrl:
+        if isinstance(cdn_host, str):
+            return self.build_asset_url(cdn_host, favicon_url=favicon)
+        if isinstance(cdn_host, CdnHostEnum):
+            cdn_host = cdn_host.build_host_info()
+        cdn_host, asset_path = cdn_host
+        if isinstance(asset_path, str):
+            asset_path = (asset_path, asset_path)
+        return self.build_asset_url(
+            cast(str, cdn_host),
+            cast(tuple[str, str], asset_path),
+            favicon_url=favicon,
+        )
+
     def run(self) -> AssetUrl:
         if (favicon := self.favicon_url) is not None:
             favicon = self.mount_local_favicon(favicon)
@@ -287,26 +305,20 @@ class CdnHostBuilder:
             if (cdn_host := self.docs_cdn_host) is not None:
                 if isinstance(cdn_host, Path):
                     static_builder.static_root = cdn_host
+                elif isinstance(cdn_host, list) and isinstance(cdn_host[0], tuple):
+                    return self._cache_wrap(self._soonify_sniff)(favicon, cdn_host)
                 else:
-                    if isinstance(cdn_host, str):
-                        return self.build_asset_url(cdn_host, favicon_url=favicon)
-                    if isinstance(cdn_host, list) and isinstance(cdn_host[0], tuple):
-                        return self._cache_wrap(self.run_async)(
-                            self.sniff_the_fastest, favicon, cdn_host
-                        )
-                    if isinstance(cdn_host, CdnHostEnum):
-                        cdn_host = cdn_host.build_host_info()
-                    cdn_host, asset_path = cdn_host
-                    if isinstance(asset_path, str):
-                        asset_path = (asset_path, asset_path)
-                    return self.build_asset_url(
-                        cast(str, cdn_host),
-                        cast(tuple[str, str], asset_path),
-                        favicon_url=favicon,
-                    )
+                    return self._sooner(cdn_host, favicon)
             if urls := static_builder.find():
                 return urls
-        return self._cache_wrap(self.run_async)(self.sniff_the_fastest, favicon)
+        return self._cache_wrap(self._soonify_sniff)(favicon)
+
+    def _soonify_sniff(
+        self, favicon, cdn_host: list[CdnHostInfoType] | None = None
+    ) -> AssetUrl:
+        if cdn_host is None:
+            return self.run_async(self.sniff_the_fastest, favicon)
+        return self.run_async(self.sniff_the_fastest, favicon, cdn_host)
 
     @classmethod
     def get_cache_file(cls) -> tuple[bool, Path]:
@@ -321,7 +333,7 @@ class CdnHostBuilder:
             file = tmp_dir / cls.default_cache_file.replace("~/", "")
             exists = file.exists()
         except FileNotFoundError:
-            ...
+            exists = False
         return exists, file
 
     def _cache_wrap(self, func: Callable[P, AssetUrl]) -> Callable[P, AssetUrl]:

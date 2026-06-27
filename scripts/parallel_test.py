@@ -17,7 +17,8 @@ def main() -> int:
     res = 0
     with concurrent.futures.ProcessPoolExecutor(max_workers=len(ds)) as executor:
         future_to_folder = {
-            executor.submit(os.system, f"cd tests/{d} && {cmd}"): d for d in ds
+            executor.submit(os.system, f"cd tests/{d} && {cmd}"): d  # ty:ignore[deprecated]
+            for d in ds
         }
         for future in concurrent.futures.as_completed(future_to_folder):
             folder = future_to_folder[future]

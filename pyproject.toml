@@ -102,19 +102,25 @@ exclude_lines = [
     "if TYPE_CHECKING:",
 ]
 
+[tool.ty.src]
+exclude = ['*.bak', 'tests']
+
 [tool.bandit]
 exclude_dirs = ["tests", "fastapi_cdn_host/cli.py", "scripts", "examples", ".venv"]
 
 [tool.pdm]
-version = { source = "file", path = "fastapi_cdn_host/__init__.py" }
 distribution = true
+
+[tool.pdm.version]
+path = "fastapi_cdn_host/__init__.py"
 
 [tool.pdm.build]
 source-includes = [
     "scripts/*.py",
 ]
+excludes = ["./**/*.bak", "examples", "tests"]
 
 [tool.pdm.scripts]
-pypi = "pdm run python scripts/uv_pypi.py {args}"
+pypi = "pdm run fast pypi {args}"
 deps = "pdm run fast deps {args}"
 tree = "pdm list --tree {args}"
