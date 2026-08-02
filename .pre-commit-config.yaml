@@ -16,7 +16,7 @@ repos:
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     # Ruff version.
-    rev: v0.15.20
+    rev: v0.16.1
     hooks:
       # Run the linter.
       - id: ruff
@@ -37,4 +37,4 @@ repos:
         name: check type hints by ty
         entry: pdm run ty check
         language: system
-        types: [python]
+        pass_filenames: false

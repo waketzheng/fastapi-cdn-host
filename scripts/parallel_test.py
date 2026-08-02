@@ -26,7 +26,7 @@ def main() -> int:
                 rc = future.result()
             except Exception as exc:
                 print("Testing %r generated an exception: %s" % (folder, exc))
-                raise exc
+                raise
             else:
                 res += rc % 255  # rc may be 256
     return res

@@ -54,7 +54,8 @@ def run_command(cmd: str, shell=False, tool=TOOL, env=None) -> None:
     print("-->", cmd, flush=True)
     if env is not None:
         env = dict(os.environ, **env)
-    r = subprocess.run(cmd if shell else shlex.split(cmd), shell=shell, env=None)
+    command = cmd if shell else shlex.split(cmd)
+    r = subprocess.run(command, shell=shell, env=None, check=False)
     r.returncode and sys.exit(1)
 
 
