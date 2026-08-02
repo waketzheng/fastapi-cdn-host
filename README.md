@@ -39,13 +39,14 @@ import fastapi_cdn_host
 from fastapi import FastAPI
 
 app = FastAPI()
-fastapi_cdn_host.patch_docs(app)  # Will use `unpkg.com`(or other faster host) to replace the `cdn.jsdelivr.net/npm`
+# Will use `unpkg.com`(or other faster host) to replace the `cdn.jsdelivr.net/npm`
+fastapi_cdn_host.patch_docs(app)
 ```
 2. To support offline docs/, put swagger-ui asset files into local directory named `static`
 ```py
 from pathlib import Path
 
-fastapi_cdn_host.patch_docs(app, Path(__file__).parent.joinpath('static'))
+fastapi_cdn_host.patch_docs(app, Path(__file__).parent.joinpath("static"))
 ```
 This get the same result of the example in official document:
 https://fastapi.tiangolo.com/how-to/custom-docs-ui-assets/?h=static#self-hosting-javascript-and-css-for-docs
@@ -57,11 +58,11 @@ from fastapi_cdn_host import AssetUrl
 fastapi_cdn_host.patch_docs(
     app,
     cdn_host=AssetUrl(
-        js='http://my-cdn.com/swagger-ui.js',
-        css='http://my-cdn.com/swagger-ui.css',
-        redoc='http://my-cdn.com/redoc.standalone.js',
-        favicon='http://my-cdn.com/favicon.ico',
-    )
+        js="http://my-cdn.com/swagger-ui.js",
+        css="http://my-cdn.com/swagger-ui.css",
+        redoc="http://my-cdn.com/redoc.standalone.js",
+        favicon="http://my-cdn.com/favicon.ico",
+    ),
 )
 ```
 

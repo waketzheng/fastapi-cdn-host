@@ -11,14 +11,14 @@ from .utils import today_lock, weekday_lock
 monkey_patch = monkey_patch_for_docs_ui
 __version__ = "0.10.0"
 __all__ = (
-    "__version__",
     "AssetUrl",
     "CdnHostEnum",
     "CdnHostItem",
+    "__version__",
     "monkey_patch",
     "monkey_patch_for_docs_ui",
+    "mount_static",
     "patch_docs",
     "today_lock",
     "weekday_lock",
-    "mount_static",
 )

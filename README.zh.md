@@ -52,9 +52,11 @@ from fastapi_cdn_host import CdnHostEnum, CdnHostItem
 fastapi_cdn_host.patch_docs(
     app,
     docs_cdn_host=CdnHostEnum.extend(
-        ('https://cdn.waketzheng.top/ajax/libs', ('/swagger-ui/{version}/', '')),
-        CdnHostItem('https://raw.githubusercontent.com/swagger-api/swagger-ui/v5.14.0/dist/swagger-ui.css'),  # github
-    )
+        ("https://cdn.waketzheng.top/ajax/libs", ("/swagger-ui/{version}/", "")),
+        CdnHostItem(
+            "https://raw.githubusercontent.com/swagger-api/swagger-ui/v5.14.0/dist/swagger-ui.css"
+        ),  # github
+    ),
 )
 ```
 

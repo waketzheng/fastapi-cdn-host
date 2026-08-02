@@ -9,17 +9,17 @@ app = FastAPI()
 
 
 @app.get("/sleep")
-async def sleep(seconds: int | float):
+async def sleep(seconds: float):
     return await wait_for(seconds)
 
 
 @app.get("/wait/{seconds}")
-async def wait(seconds: int | float):
+async def wait(seconds: float):
     return await wait_for(seconds)
 
 
 @app.get("/delay/{seconds}")
-async def delay(seconds: int | float):
+async def delay(seconds: float):
     return await wait_for(seconds)
 
 
