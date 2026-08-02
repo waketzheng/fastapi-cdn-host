@@ -43,9 +43,9 @@ repository = "https://github.com/waketzheng/fastapi-cdn-host.git"
 
 [dependency-groups]
 dev = [
-    "fastdevcli-slim>=0.19.9",
+    "fast-dev-cli>=0.25.3",
     "bandit>=1.8.5",
-    "asynctor>=0.12.0",
+    "asynctor>=0.13.3",
     "trio>=0.29.0",
     "pytest-mock>=3.14.0",
     "flask>=3.1.1",

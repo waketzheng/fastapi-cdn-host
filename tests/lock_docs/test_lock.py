@@ -2,6 +2,7 @@
 import random
 import sys
 from datetime import datetime
+from typing import Final
 
 import pytest
 from httpx import AsyncClient
@@ -64,7 +65,7 @@ class LockTester:
 
 
 class TestWeekdayLock(LockTester):
-    weekdays = [
+    weekdays: Final[list[str]] = [
         "Monday",
         "Tuesday",
         "Wednesday",
@@ -75,7 +76,7 @@ class TestWeekdayLock(LockTester):
     ]
 
     def get_day_value(self) -> str:
-        return self.weekdays[datetime.now().weekday()]
+        return self.weekdays[datetime.now().astimezone().weekday()]
 
     @pytest.mark.anyio
     async def test_lock(self, client_app: AsyncClient):
@@ -144,7 +145,7 @@ async def test_today_lock(client_today_lock: AsyncClient) -> None:
 
 class TestTodayLock(LockTester):
     def get_day_value(self) -> str:
-        return str(datetime.now().date())
+        return str(datetime.now().astimezone().date())
 
     @pytest.mark.anyio
     async def test_today_lock(self, client_today: AsyncClient):

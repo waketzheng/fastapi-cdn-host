@@ -23,7 +23,7 @@ def ensure_not_exist(path: Path) -> Generator:
 def prepare():
     static_root = Path(__file__).parent / "static"
     with ensure_not_exist(static_root):
-        r = subprocess.run(["fastcdn", "offline"])
+        r = subprocess.run(["fastcdn", "offline"], check=False)
         assert r.returncode == 0
         assert static_root.exists()
         yield

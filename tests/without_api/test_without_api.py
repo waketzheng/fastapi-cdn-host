@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import cast
 
 import pytest
+from asynctor import Timer
 from fastapi import FastAPI
 
 from fastapi_cdn_host.cli import (
@@ -126,15 +127,15 @@ def test_patch_app(mocker, tmp_workdir):
     mock_echo = mocker.patch("typer.echo")
     fmt = "%Y%m%d%H%M%S"
     path = "main.py"
-    start = datetime.now()
+    start = Timer.now()
     with patch_app(path, remove=False) as app_file:
         assert app_file.suffix == ".py"
         stem = app_file.stem
         assert stem.startswith("app_")
         time_str = stem.replace("app_", "")
-        dt = datetime.strptime(time_str, fmt)
+        dt = datetime.strptime(time_str + f"{start:%z}", "%Y%m%d%H%M%S%z")
         assert start.strftime(fmt) <= time_str
-        assert dt < datetime.now()
+        assert dt < Timer.now()
     assert app_file.exists()
     time.sleep(1)
     with patch_app(path) as app_file_2:

@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from datetime import datetime
-
 import anyio
+from asynctor import Timer
 from fastapi import FastAPI, HTTPException
 
 app = FastAPI()
@@ -24,9 +23,9 @@ async def delay(seconds: float):
 
 
 async def wait_for(seconds) -> dict:
-    start = datetime.now()
+    start = Timer.now()
     await anyio.sleep(seconds)
-    end = datetime.now()
+    end = Timer.now()
     return {"seconds": seconds, "start": start, "end": end}
 
 

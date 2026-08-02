@@ -1,6 +1,5 @@
 # mypy: no-disallow-untyped-decorators
 import contextlib
-from datetime import datetime
 
 import anyio
 import pytest
@@ -19,7 +18,7 @@ async def wait_for_app_startup(client: AsyncClient, timeout=5) -> None:
     start = timer._start
 
     def past_time() -> float:
-        return round(datetime.now().timestamp() - start, timer._decimal_places)
+        return round(Timer.now().timestamp() - start, timer._decimal_places)
 
     for loop in range(1, int(timeout // interval)):
         with contextlib.suppress(ConnectError), timer as t:

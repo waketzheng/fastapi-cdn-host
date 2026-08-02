@@ -80,7 +80,7 @@ class WeekdayLock(ParamLock):
     @staticmethod
     def validate(value: str) -> bool:
         return (weekday := getattr(calendar, value.upper(), None)) is not None and (
-            weekday == datetime.now().weekday()
+            weekday == datetime.now().astimezone().weekday()
         )
 
 
@@ -96,7 +96,7 @@ class TodayLock(WeekdayLock):
 
     @staticmethod
     def validate(value: str) -> bool:
-        return value == str(datetime.now().date())
+        return value == str(datetime.now().astimezone().date())
 
 
 def weekday_lock(request: Request, name="day", exclude_localhost=True) -> None:

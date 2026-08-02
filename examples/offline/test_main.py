@@ -1,6 +1,7 @@
 from datetime import datetime
 
 import pytest
+from asynctor import Timer
 from httpx import AsyncClient
 from main import app
 
@@ -45,6 +46,6 @@ async def test_post(client: AsyncClient) -> None:
     assert response.status_code == 200
     data = response.json()
     time: str = data.pop("time")
-    dt = datetime.strptime(time, "%Y-%m-%dT%H:%M:%S.%fZ")
-    assert dt <= datetime.now()
+    dt = datetime.strptime(time, "%Y-%m-%dT%H:%M:%S.%f%z")
+    assert dt <= Timer.now()
     assert data == {"a": "1", "b": 2}

@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from ssl import SSLError
-from typing import Annotated, Any, Literal, TypeVar, cast, overload
+from typing import Annotated, Any, ClassVar, Final, Literal, TypeVar, cast, overload
 
 import anyio
 import httpx
@@ -149,7 +149,7 @@ class AssetUrl:
 
 
 class HttpSniff:
-    cached: dict[str, bytes] = {}
+    cached: ClassVar[dict[str, bytes]] = {}
 
     @classmethod
     async def fetch(
@@ -246,7 +246,10 @@ class HttpSniff:
 class CdnHostBuilder:
     swagger_ui_version = "5"
     swagger_ui_full_version = "5.29.1"
-    swagger_files = {"css": "swagger-ui.css", "js": "swagger-ui-bundle.js"}
+    swagger_files: Final[dict[str, str]] = {
+        "css": "swagger-ui.css",
+        "js": "swagger-ui-bundle.js",
+    }
     redoc_file = "redoc.standalone.js"
     default_cache_file = "~/.cache/fastapi-cdn-host/urls.txt"
 
@@ -358,7 +361,7 @@ class CdnHostBuilder:
                         css=css, js=js, redoc=redoc, favicon=self.favicon_url
                     )
             urls = func(*args, **kw)
-            content = "\n".join([urls.css, urls.js, urls.redoc]).encode()
+            content = f"{urls.css}\n{urls.js}\n{urls.redoc}".encode()
             if not (parent := file.parent).exists():
                 parent.mkdir(parents=True, exist_ok=True)
                 logger.info(f"{parent} created!")

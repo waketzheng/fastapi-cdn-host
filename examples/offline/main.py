@@ -1,10 +1,10 @@
 #!/usr/bin/env python
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Annotated
 
 import fastapi_cdn_host
 import uvicorn
+from asynctor.timing import AwareDateTime, Timer
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
@@ -36,7 +36,7 @@ class PostData(BaseModel):
 
 
 class ResponseModel(PostData):
-    time: Annotated[datetime, Field(default_factory=lambda: datetime.now(timezone.utc))]
+    time: Annotated[AwareDateTime, Field(default_factory=Timer.now)]
 
 
 @app.post("/test", response_model=ResponseModel)

@@ -59,7 +59,7 @@ def run_shell(cmd: str) -> None:
             cmd_env[name] = value
     if cmd_env is not None:
         command = command[index:]
-    subprocess.run(command, env=cmd_env)  # nosec:B603
+    subprocess.run(command, env=cmd_env, check=False)  # nosec:B603
 
 
 TEMPLATE = """
@@ -93,7 +93,7 @@ def write_app(dest: Path, from_path: str | Path) -> None:
 
 @contextmanager
 def patch_app(path: str | Path, remove: bool = True) -> Generator[Path, None, None]:
-    ident = f"{datetime.now():%Y%m%d%H%M%S}"
+    ident = f"{datetime.now().astimezone():%Y%m%d%H%M%S}"
     app_file = Path(f"app_{ident}.py")
     write_app(app_file, path)
     try:
