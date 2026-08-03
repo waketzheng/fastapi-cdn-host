@@ -30,7 +30,7 @@ jobs:
         name: Checkout PR for fork
         if: env.IS_FORK == 'true'
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           # Keep the same with default python version in .pre-commit-config.yaml
           python-version: "3.12"
