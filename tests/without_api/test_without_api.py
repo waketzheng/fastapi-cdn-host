@@ -82,14 +82,14 @@ class TestRunShell:
         mock_run = mocker.patch("subprocess.run")
         run_shell("ls")
         mock_echo.assert_called_once_with("--> ls")
-        mock_run.assert_called_once_with(["ls"], env=None)
+        mock_run.assert_called_once_with(["ls"], env=None, check=False)
 
     def test_run_shell(self, mocker):
         mock_echo = mocker.patch("typer.echo")
         mock_run = mocker.patch("subprocess.run")
         run_shell("ls tests")
         mock_echo.assert_called_once_with("--> ls tests")
-        mock_run.assert_called_once_with(["ls", "tests"], env=None)
+        mock_run.assert_called_once_with(["ls", "tests"], env=None, check=False)
 
     def test_env(self, mocker):
         mock_echo = mocker.patch("typer.echo")
@@ -97,7 +97,7 @@ class TestRunShell:
         mocker.patch.object(os, "environ", {})
         run_shell("AA=1 ls")
         mock_echo.assert_called_once_with("--> AA=1 ls")
-        mock_run.assert_called_once_with(["ls"], env={"AA": "1"})
+        mock_run.assert_called_once_with(["ls"], env={"AA": "1"}, check=False)
 
     def test_env_multi(self, mocker):
         mock_echo = mocker.patch("typer.echo")
@@ -106,7 +106,7 @@ class TestRunShell:
         run_shell("AA=1 BB=2 ls -a .")
         mock_echo.assert_called_once_with("--> AA=1 BB=2 ls -a .")
         mock_run.assert_called_once_with(
-            ["ls", "-a", "."], env={"AA": "1", "BB": "2", "CC": "3"}
+            ["ls", "-a", "."], env={"AA": "1", "BB": "2", "CC": "3"}, check=False
         )
 
 
