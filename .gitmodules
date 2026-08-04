@@ -1,0 +1,3 @@
+[submodule ".common-just"]
+	path = .common-just
+	url = https://github.com/waketzheng/python-backend-justfile
