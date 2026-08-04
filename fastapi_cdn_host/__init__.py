@@ -9,7 +9,7 @@ from .client import (
 from .utils import today_lock, weekday_lock
 
 monkey_patch = monkey_patch_for_docs_ui
-__version__ = "0.10.0"
+__version__ = "0.10.1"
 __all__ = (
     "AssetUrl",
     "CdnHostEnum",
