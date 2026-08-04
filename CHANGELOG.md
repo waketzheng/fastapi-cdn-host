@@ -4,7 +4,14 @@
 
 *(Unreleased)*
 
-### [0.10.0]
+### [0.10.1](../../releases/tag/v0.10.1) - 2025-08-04
+
+#### Changed
+- Apply new version ruff style
+- refactor: add justfile and fix lint issues
+- Remove fastdevcli-slim from dev deps
+
+### [0.10.0](../../releases/tag/v0.10.0) - 2025-01-07
 
 #### Changed
 
