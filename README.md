@@ -15,7 +15,7 @@ Otherwise make concurrent http requests by httpx to find out which third part cd
 ## Install
 
 ```bash
-pip install fastapi-cdn-host
+uv pip install fastapi-cdn-host
 ```
 
 ## Usage
@@ -46,7 +46,10 @@ fastapi_cdn_host.patch_docs(app)
 ```py
 from pathlib import Path
 
-fastapi_cdn_host.patch_docs(app, Path(__file__).parent.joinpath("static"))
+BASE_DIR = Path(__file__).parent.resolve()
+STATIC_ROOT = BASE_DIR / "static"
+
+fastapi_cdn_host.patch_docs(app, STATIC_ROOT)
 ```
 This get the same result of the example in official document:
 https://fastapi.tiangolo.com/how-to/custom-docs-ui-assets/?h=static#self-hosting-javascript-and-css-for-docs
