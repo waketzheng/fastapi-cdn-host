@@ -65,7 +65,7 @@ jobs:
             git commit -m "🎨 Auto format"
             git push
           fi
-      - uses: pre-commit-ci/lite-action@v1.1.0
+      - uses: pre-commit-ci/lite-action@v1.2.0
         if: env.IS_FORK == 'true'
         with:
           msg: 🎨 Auto format
